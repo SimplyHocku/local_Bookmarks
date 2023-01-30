@@ -35,7 +35,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.catalog_with_db = QtWidgets.QComboBox()
         self.catalog_with_db.addItems(get_bases())
         self.catalog_with_db.currentIndexChanged.connect(self.add_to_category)
-        self.catalog_with_db.setFixedSize(300, 50)
+        self.catalog_with_db.setFixedSize(200, 25)
         self.block_with_base_label.addWidget(field_base)
         self.block_with_base_label.addWidget(self.catalog_with_db)
 
@@ -43,17 +43,24 @@ class MainWindow(QtWidgets.QMainWindow):
 
         category = QtWidgets.QLabel("Категория")
         self.category_catalog = QtWidgets.QComboBox()
-        self.category_catalog.setFixedSize(300, 50)
+        self.category_catalog.setFixedSize(200, 25)
         self.category_catalog.currentIndexChanged.connect(self.get_info_cur_table)
 
         self.block_with_category.addWidget(category)
         self.block_with_category.addWidget(self.category_catalog)
 
         self.bookmarks_catalog = QtWidgets.QListWidget()
-        self.bookmarks_catalog.setFixedSize(500, 800)
+        self.bookmarks_catalog.setFixedSize(275, 800)
         self.bookmarks_catalog.itemClicked.connect(self.render_main_blog)
 
+        self.add_record = QtWidgets.QPushButton("Добавить запись")
+        self.update_record = QtWidgets.QPushButton("Обновить запись")
+
         self.vertical_box_for_view.addLayout(self.block_with_category)
+
+        self.vertical_box_for_view.addWidget(self.add_record)
+        self.vertical_box_for_view.addWidget(self.update_record)
+
         self.vertical_box_for_view.addWidget(self.bookmarks_catalog)
 
         self.web_view = QWebEngineView()
