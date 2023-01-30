@@ -2,8 +2,9 @@ import sqlite3
 import sys
 import pathlib
 from jinja2 import *
-from PyQt5 import QtWidgets, QtSql, QtCore
-from PyQt5.QtWebKitWidgets import QWebView
+from PyQt5 import QtWidgets
+# from PyQt5.QtWebKitWidgets import QWebView
+from PyQt5.QtWebEngineWidgets import QWebEngineView
 
 
 def get_bases():
@@ -55,7 +56,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.vertical_box_for_view.addLayout(self.block_with_category)
         self.vertical_box_for_view.addWidget(self.bookmarks_catalog)
 
-        self.web_view = QWebView()
+        self.web_view = QWebEngineView()
 
         self.horizont_box = QtWidgets.QHBoxLayout()
         self.horizont_box.addLayout(self.vertical_box_for_view)
