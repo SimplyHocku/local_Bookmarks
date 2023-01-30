@@ -5,6 +5,7 @@ from jinja2 import *
 from PyQt5 import QtWidgets
 # from PyQt5.QtWebKitWidgets import QWebView
 from PyQt5.QtWebEngineWidgets import QWebEngineView
+from PyQt5.QtCore import QDate
 
 
 def get_bases():
@@ -14,6 +15,75 @@ def get_bases():
     for name in main_dir.glob("*.db"):
         catalog_with_bases.append(name.name)
     return catalog_with_bases
+
+
+class AdderToBD(QtWidgets.QWidget):
+    def __init__(self):
+        super().__init__()
+        self.name = QtWidgets.QLineEdit()
+        self.name.setPlaceholderText("Название")
+
+        self.wb_patch = QtWidgets.QLineEdit()
+        self.wb_patch_btn = QtWidgets.QPushButton("Выбрать файл")
+
+        self.date = QtWidgets.QLineEdit()
+        self.date.setPlaceholderText("Дата")
+        self.date_btn = QtWidgets.QPushButton("...")
+        self.date_btn.clicked.connect(self.hide_calendar)
+
+        self.date_widget = QtWidgets.QCalendarWidget()
+        self.date_widget.hide()
+        self.date_widget.selectionChanged.connect(self.add_to_date)
+        date_format = QDate(30,1, 2023)
+        self.date_widget.dateTextFormat(date_format)
+
+        # self.date_btn.clicked.connect(self.test)
+
+        self.url = QtWidgets.QLineEdit()
+        self.url.setPlaceholderText("Ссылка")
+        # self.wb_patch = QtWidgets.QFileDialog.getOpenFileName()[0]
+        # self.wb_patch.currentChanged.connect(self.test)
+        # self.date.clicked.connect(self.test)
+        # self.date.hide()
+        self.status = QtWidgets.QLineEdit()
+        self.status.setPlaceholderText("Статус")
+
+        self.description = QtWidgets.QTextBrowser()
+        self.description.setPlaceholderText("Описание")
+
+        self.main_vbox = QtWidgets.QVBoxLayout()
+        self.main_vbox.addWidget(self.name)
+
+        self.up_horizont = QtWidgets.QHBoxLayout()
+        self.up_horizont.addWidget(self.wb_patch)
+        self.up_horizont.addWidget(self.wb_patch_btn)
+
+        self.down_horizont = QtWidgets.QHBoxLayout()
+        self.down_horizont.addWidget(self.date)
+        self.down_horizont.addWidget(self.date_btn)
+
+        self.main_vbox.addWidget(self.name)
+        self.main_vbox.addLayout(self.up_horizont)
+        self.main_vbox.addLayout(self.down_horizont)
+        self.main_vbox.addWidget(self.date_widget)
+        self.main_vbox.addWidget(self.url)
+        self.main_vbox.addWidget(self.status)
+        self.main_vbox.addWidget(self.description)
+        # self.main_vbox.addWidget(self.test_btn)
+        self.setLayout(self.main_vbox)
+
+        self.show()
+
+    def add_to_date(self):
+        print(self.date_widget.selectedDate().getDate())
+        print(self.date_widget.forma)
+
+    def hide_calendar(self):
+        # print(self.date.selectedDate())
+        if self.date_widget.isHidden():
+            self.date_widget.show()
+        else:
+            self.date_widget.hide()
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -54,6 +124,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.bookmarks_catalog.itemClicked.connect(self.render_main_blog)
 
         self.add_record = QtWidgets.QPushButton("Добавить запись")
+        self.add_record.clicked.connect(self.add_record_to_bd)
         self.update_record = QtWidgets.QPushButton("Обновить запись")
 
         self.vertical_box_for_view.addLayout(self.block_with_category)
@@ -71,6 +142,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.horizont_box.addWidget(self.web_view)
 
         self.center_widget.setLayout(self.horizont_box)
+
+    def add_record_to_bd(self):
+        self.bd_win = AdderToBD()
 
     def add_to_category(self):
         path = pathlib.Path("databases", self.catalog_with_db.itemText(self.catalog_with_db.currentIndex()))
