@@ -5,8 +5,22 @@ from jinja2 import *
 from PyQt5 import QtWidgets
 # from PyQt5.QtWebKitWidgets import QWebView
 from PyQt5.QtWebEngineWidgets import QWebEngineView
-from PyQt5.QtCore import QDate
 
+
+# from PyQt5.QtCore import QDate
+
+
+# def create_default_base():
+#     path = pathlib.Path("databases", "default.db")
+#
+#     if path.exists():
+#         pass
+#     else:
+#         with sqlite3.connect(path) as conn:
+#             cur = conn.cursor()
+#             cur.execute("""
+#             CREATE TABLE
+#             """)
 
 def get_bases():
     main_dir = pathlib.Path("databases")
@@ -17,14 +31,26 @@ def get_bases():
     return catalog_with_bases
 
 
-class AdderToBD(QtWidgets.QWidget):
-    def __init__(self):
+def convert_date(values):
+    day = values[2]
+    month = values[1]
+    year = values[0]
+    return f"{day}.{month}.{year}"
+
+
+class AdderRecordToBD(QtWidgets.QWidget):
+    def __init__(self, cur_bd_name, cur_category_name):
         super().__init__()
+        self.cur_bd_name = cur_bd_name
+        self.cur_category_name = cur_category_name
+
         self.name = QtWidgets.QLineEdit()
         self.name.setPlaceholderText("Название")
 
         self.wb_patch = QtWidgets.QLineEdit()
+        self.wb_patch.setPlaceholderText("Скрин-шот")
         self.wb_patch_btn = QtWidgets.QPushButton("Выбрать файл")
+        self.wb_patch_btn.clicked.connect(self.select_file)
 
         self.date = QtWidgets.QLineEdit()
         self.date.setPlaceholderText("Дата")
@@ -34,9 +60,6 @@ class AdderToBD(QtWidgets.QWidget):
         self.date_widget = QtWidgets.QCalendarWidget()
         self.date_widget.hide()
         self.date_widget.selectionChanged.connect(self.add_to_date)
-        date_format = QDate(30,1, 2023)
-        self.date_widget.dateTextFormat(date_format)
-
         # self.date_btn.clicked.connect(self.test)
 
         self.url = QtWidgets.QLineEdit()
@@ -48,7 +71,7 @@ class AdderToBD(QtWidgets.QWidget):
         self.status = QtWidgets.QLineEdit()
         self.status.setPlaceholderText("Статус")
 
-        self.description = QtWidgets.QTextBrowser()
+        self.description = QtWidgets.QTextEdit()
         self.description.setPlaceholderText("Описание")
 
         self.main_vbox = QtWidgets.QVBoxLayout()
@@ -62,6 +85,9 @@ class AdderToBD(QtWidgets.QWidget):
         self.down_horizont.addWidget(self.date)
         self.down_horizont.addWidget(self.date_btn)
 
+        self.btn_bd_insert = QtWidgets.QPushButton("Загрузить в БД")
+        self.btn_bd_insert.clicked.connect(self.insert_record_in_db)
+
         self.main_vbox.addWidget(self.name)
         self.main_vbox.addLayout(self.up_horizont)
         self.main_vbox.addLayout(self.down_horizont)
@@ -69,14 +95,18 @@ class AdderToBD(QtWidgets.QWidget):
         self.main_vbox.addWidget(self.url)
         self.main_vbox.addWidget(self.status)
         self.main_vbox.addWidget(self.description)
-        # self.main_vbox.addWidget(self.test_btn)
+        self.main_vbox.addWidget(self.btn_bd_insert)
         self.setLayout(self.main_vbox)
 
         self.show()
 
+    def select_file(self):
+        file = QtWidgets.QFileDialog.getOpenFileName()
+        self.wb_patch.setText(file[0])
+
     def add_to_date(self):
-        print(self.date_widget.selectedDate().getDate())
-        print(self.date_widget.forma)
+        selected_date = convert_date(self.date_widget.selectedDate().getDate())
+        self.date.setText(selected_date)
 
     def hide_calendar(self):
         # print(self.date.selectedDate())
@@ -84,6 +114,47 @@ class AdderToBD(QtWidgets.QWidget):
             self.date_widget.show()
         else:
             self.date_widget.hide()
+
+    def insert_record_in_db(self):
+        # db_name = self.
+        path = pathlib.Path("databases", self.cur_bd_name)
+        with sqlite3.connect(path) as conn:
+            values = (str(self.name.text()), str(self.wb_patch.text()), str(self.date.text()), str(self.url.text()), str(self.status.text()),
+                      str(self.description.toPlainText()))
+            cur = conn.cursor()
+            cur.execute("""
+            INSERT INTO {name} VALUES (?,?,?,?,?,?);
+            """.format(name=self.cur_category_name), values)
+            conn.commit()
+
+
+class AdderCategoryToBD(QtWidgets.QWidget):
+    def __init__(self, name_cur_db):
+        super().__init__()
+        self.name_cur_db = name_cur_db
+
+        self.name_category = QtWidgets.QLineEdit()
+        self.name_category.setPlaceholderText("Название категории:")
+        self.add_category_btn = QtWidgets.QPushButton("Добавить категорию в БД")
+        self.add_category_btn.clicked.connect(self.add_category_in_db)
+
+        self.adder_category_vbox = QtWidgets.QVBoxLayout()
+        self.adder_category_vbox.addWidget(self.name_category)
+        self.adder_category_vbox.addWidget(self.add_category_btn)
+        self.setLayout(self.adder_category_vbox)
+
+        self.show()
+
+    def add_category_in_db(self):
+        path = pathlib.Path("databases", self.name_cur_db)
+        name_category = self.name_category.text()
+        with sqlite3.connect(path) as conn:
+            cur = conn.cursor()
+
+            cur.execute("""
+            CREATE TABLE `{name}` (name text, screen_name text, date text, url text, status text, description text);
+            """.format(name=name_category))
+            conn.commit()
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -123,12 +194,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.bookmarks_catalog.setFixedSize(275, 800)
         self.bookmarks_catalog.itemClicked.connect(self.render_main_blog)
 
+        self.add_category = QtWidgets.QPushButton("Добавить категорию")
+        self.add_category.clicked.connect(self.add_category_to_bd)
+
         self.add_record = QtWidgets.QPushButton("Добавить запись")
         self.add_record.clicked.connect(self.add_record_to_bd)
         self.update_record = QtWidgets.QPushButton("Обновить запись")
 
         self.vertical_box_for_view.addLayout(self.block_with_category)
 
+        self.vertical_box_for_view.addWidget(self.add_category)
         self.vertical_box_for_view.addWidget(self.add_record)
         self.vertical_box_for_view.addWidget(self.update_record)
 
@@ -143,10 +218,15 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.center_widget.setLayout(self.horizont_box)
 
+    def add_category_to_bd(self):
+        self.bd_category_win = AdderCategoryToBD(self.catalog_with_db.itemText(self.catalog_with_db.currentIndex()))
+
     def add_record_to_bd(self):
-        self.bd_win = AdderToBD()
+        self.bd_win = AdderRecordToBD(self.catalog_with_db.itemText(self.catalog_with_db.currentIndex()),
+                                      self.category_catalog.itemText(self.category_catalog.currentIndex()))
 
     def add_to_category(self):
+        self.category_catalog.clear()
         path = pathlib.Path("databases", self.catalog_with_db.itemText(self.catalog_with_db.currentIndex()))
         if path.exists():
             with sqlite3.connect(path) as conn:
@@ -166,6 +246,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def get_info_cur_table(self):
         name = self.category_catalog.itemText(self.category_catalog.currentIndex())
+        if not name:
+            return
         base_name = self.catalog_with_db.itemText(self.catalog_with_db.currentIndex())
         path = pathlib.Path("databases", base_name)
         if path.exists():
@@ -201,6 +283,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
 if __name__ == "__main__":
+    # create_default_base()
     app = QtWidgets.QApplication(sys.argv)
     window = MainWindow()
     window.setFixedSize(1148, 613)
