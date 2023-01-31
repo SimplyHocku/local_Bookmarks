@@ -179,7 +179,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.category_catalog.setFixedSize(200, 25)
         self.category_catalog.currentIndexChanged.connect(self.get_info_cur_table)
 
-        self.category_catalog.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.category_catalog.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
         self.category_catalog.customContextMenuRequested.connect(self.show_menu)
         self.category_catalog.setObjectName("category_catalog")
 
