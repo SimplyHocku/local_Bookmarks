@@ -119,7 +119,7 @@ class EditRecord(QtWidgets.QWidget):
             res = cur.execute("""
             SELECT * FROM `{table_name}`
             WHERE name = ? and id = ?
-            """.format(table_name=table_name), (record_name,)).fetchall()
+            """.format(table_name=table_name), (record_name, self.bookmark_for_edit.currentRow() + 1)).fetchall()
             print(res)
 
 
