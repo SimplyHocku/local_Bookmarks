@@ -4,17 +4,9 @@ import pathlib
 from jinja2 import *
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtGui import QIcon
+# from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtCore import Qt
-
-
-def get_bases():
-    main_dir = pathlib.Path("databases")
-    catalog_with_bases = list()
-    catalog_with_bases.append("Не выбрано")
-    for name in main_dir.glob("*.db"):
-        catalog_with_bases.append(name.name)
-    return catalog_with_bases
 
 
 def convert_date(values):
@@ -24,11 +16,51 @@ def convert_date(values):
     return f"{day}.{month}.{year}"
 
 
-class AdderRecordToBD(QtWidgets.QWidget):
-    def __init__(self, cur_bd_name, cur_category_name):
+class EditorCategory(QtWidgets.QWidget):
+    def __init__(self, name_cur_db, name_cur_cat, function_restart_combo):
         super().__init__()
+        # self.get_name_category()
+        self.name_cur_db = name_cur_db
+        self.name_cur_cat = name_cur_cat
+        self.restart = function_restart_combo
+
+        self.name_category = QtWidgets.QLineEdit()
+        self.name_category.setPlaceholderText("Название категории:")
+        self.name_category.setText(self.name_cur_cat)
+        self.name_category.textChanged.connect(self.text_change)
+        self.add_category_btn = QtWidgets.QPushButton("Редактировать категорию")
+        self.add_category_btn.clicked.connect(self.editor_category)
+
+        self.adder_category_vbox = QtWidgets.QVBoxLayout()
+        self.adder_category_vbox.addWidget(self.name_category)
+        self.adder_category_vbox.addWidget(self.add_category_btn)
+        self.setLayout(self.adder_category_vbox)
+        self.show()
+
+    def text_change(self):
+        self.name_category.setText(self.name_category.text())
+
+    def editor_category(self):
+        with sqlite3.connect(self.name_cur_db) as conn:
+            print("1", self.name_cur_db)
+            self.text_change()
+            cur = conn.cursor()
+            print(self.name_category.text())
+            cur.execute("""
+            ALTER TABLE `99`
+            RENAME TO t99;
+            """)
+            conn.commit()
+            self.restart()
+
+
+class AdderRecordToBD(QtWidgets.QWidget):
+    def __init__(self, cur_bd_name, cur_category_name, function_restart_bookmarks):
+        super().__init__()
+
         self.cur_bd_name = cur_bd_name
         self.cur_category_name = cur_category_name
+        self.restart_book = function_restart_bookmarks
 
         self.name = QtWidgets.QLineEdit()
         self.name.setPlaceholderText("Название")
@@ -46,14 +78,9 @@ class AdderRecordToBD(QtWidgets.QWidget):
         self.date_widget = QtWidgets.QCalendarWidget()
         self.date_widget.hide()
         self.date_widget.selectionChanged.connect(self.add_to_date)
-        # self.date_btn.clicked.connect(self.test)
 
         self.url = QtWidgets.QLineEdit()
         self.url.setPlaceholderText("Ссылка")
-        # self.wb_patch = QtWidgets.QFileDialog.getOpenFileName()[0]
-        # self.wb_patch.currentChanged.connect(self.test)
-        # self.date.clicked.connect(self.test)
-        # self.date.hide()
         self.status = QtWidgets.QLineEdit()
         self.status.setPlaceholderText("Статус")
 
@@ -95,14 +122,12 @@ class AdderRecordToBD(QtWidgets.QWidget):
         self.date.setText(selected_date)
 
     def hide_calendar(self):
-        # print(self.date.selectedDate())
         if self.date_widget.isHidden():
             self.date_widget.show()
         else:
             self.date_widget.hide()
 
     def insert_record_in_db(self):
-        # db_name = self.
         path = pathlib.Path("databases", self.cur_bd_name)
         with sqlite3.connect(path) as conn:
             values = (str(self.name.text()), str(self.wb_patch.text()), str(self.date.text()), str(self.url.text()),
@@ -113,12 +138,14 @@ class AdderRecordToBD(QtWidgets.QWidget):
             INSERT INTO {name} VALUES (?,?,?,?,?,?);
             """.format(name=self.cur_category_name), values)
             conn.commit()
+            self.restart_book()
 
 
 class AdderCategoryToBD(QtWidgets.QWidget):
-    def __init__(self, name_cur_db):
+    def __init__(self, name_cur_db, function_restart_combo):
         super().__init__()
         self.name_cur_db = name_cur_db
+        self.restart = function_restart_combo
 
         self.name_category = QtWidgets.QLineEdit()
         self.name_category.setPlaceholderText("Название категории:")
@@ -143,117 +170,113 @@ class AdderCategoryToBD(QtWidgets.QWidget):
             """.format(name=name_category))
             conn.commit()
 
+            self.restart()
+
 
 class MainWindow(QtWidgets.QMainWindow):
 
     def __init__(self):
         super().__init__()
-
         self.center_widget = QtWidgets.QWidget()
         self.setCentralWidget(self.center_widget)
 
-        self.vertical_box_for_view = QtWidgets.QVBoxLayout()
-        self.vertical_box_for_view.addStretch(10)
+        self.path_to_bd = None
 
-        self.block_with_base_label = QtWidgets.QHBoxLayout()
+        self.menu = self.menuBar()
+        self.menu_file_edit = self.menu.addMenu('&Файл')
+        action_choose_db = self.menu_file_edit.addAction("Выбрать базу данных")
+        action_choose_db.triggered.connect(self.choose_db)
 
-        self.block_with_category = QtWidgets.QHBoxLayout()
-
-        field_base = QtWidgets.QLabel("База данных")
-        self.catalog_with_db = QtWidgets.QComboBox()
-        self.catalog_with_db.addItems(get_bases())
-        self.catalog_with_db.currentIndexChanged.connect(self.add_to_category)
-
-        # self.catalog_with_db.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-        # self.catalog_with_db.customContextMenuRequested.connect(self.show_menu)
-        # self.catalog_with_db.setObjectName("catalog_with_db")
-
-        self.catalog_with_db.setFixedSize(200, 25)
-        self.block_with_base_label.addWidget(field_base)
-        self.block_with_base_label.addWidget(self.catalog_with_db)
-
-        self.vertical_box_for_view.addLayout(self.block_with_base_label)
-
-        category = QtWidgets.QLabel("Категория")
-        self.category_catalog = QtWidgets.QComboBox()
-        self.category_catalog.setFixedSize(200, 25)
-        self.category_catalog.currentIndexChanged.connect(self.get_info_cur_table)
-
-        self.category_catalog.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
-        self.category_catalog.customContextMenuRequested.connect(self.show_menu)
-        self.category_catalog.setObjectName("category_catalog")
-
-        self.block_with_category.addWidget(category)
-        self.block_with_category.addWidget(self.category_catalog)
-
-        self.bookmarks_catalog = QtWidgets.QListWidget()
-
+        self.bookmarks_catalog = QtWidgets.QListWidget(parent=self)
+        self.bookmarks_catalog.setObjectName("bookmarks_catalog")
+        self.bookmarks_catalog.move(10, 30)
+        self.bookmarks_catalog.setFixedSize(276, 530)
         self.bookmarks_catalog.setContextMenuPolicy(Qt.CustomContextMenu)
+
         self.bookmarks_catalog.customContextMenuRequested.connect(self.show_menu)
-
-        self.category_catalog.customContextMenuRequested.connect(self.show_menu)
-
-        self.bookmarks_catalog.setFixedSize(275, 800)
         self.bookmarks_catalog.itemDoubleClicked.connect(self.render_main_blog)
 
-        self.bookmarks_catalog.setObjectName("bookmarks_catalog")
+        self.web_view = QWebEngineView(parent=self)
+        self.web_view.setFixedSize(840, 530)
+        self.web_view.move(300, 30)
 
-        self.add_category = QtWidgets.QPushButton()
+        self.add_category = QtWidgets.QPushButton(parent=self)
+        if self.path_to_bd is None:
+            self.add_category.setDisabled(True)
+        self.add_category.move(10, 565)
+        self.add_category.setFixedSize(25, 25)
         self.add_category.setIcon(QIcon("images/refresh_icon.png"))
         self.add_category.clicked.connect(self.add_category_to_bd)
 
-        self.add_record = QtWidgets.QPushButton()
-        self.add_record.clicked.connect(self.add_record_to_bd)
+        self.add_record = QtWidgets.QPushButton(parent=self)
+        self.add_record.move(50, 565)
+        self.add_record.setFixedSize(25, 25)
         self.add_record.setIcon(QIcon("images/refresh_icon.png"))
+        self.add_record.clicked.connect(self.add_record_to_bd)
 
-        self.horizont_box_with_btn = QtWidgets.QHBoxLayout()
-        self.horizont_box_with_btn.addWidget(self.add_category)
-        self.horizont_box_with_btn.addWidget(self.add_record)
+        self.category_catalog = QtWidgets.QComboBox(parent=self)
+        if self.path_to_bd is None:
+            self.category_catalog.setDisabled(True)
+        if not self.category_catalog.isEnabled():
+            self.add_record.setDisabled(True)
+        self.category_catalog.setStatusTip("Выбрать категорию")
+        self.category_catalog.setObjectName("category_catalog")
+        self.category_catalog.setPlaceholderText("Категория")
 
-        self.vertical_box_for_view.addLayout(self.block_with_category)
+        self.category_catalog.move(160, 565)
+        self.category_catalog.setFixedSize(125, 25)
+        self.category_catalog.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
 
-        self.vertical_box_for_view.addLayout(self.horizont_box_with_btn)
-
-        self.vertical_box_for_view.addWidget(self.bookmarks_catalog)
-
-        self.web_view = QWebEngineView()
-
-        self.horizont_box = QtWidgets.QHBoxLayout()
-        self.horizont_box.addLayout(self.vertical_box_for_view)
-
-        self.horizont_box.addWidget(self.web_view)
-
-        self.center_widget.setLayout(self.horizont_box)
+        self.category_catalog.currentIndexChanged.connect(self.get_info_cur_table)
+        self.category_catalog.customContextMenuRequested.connect(self.show_menu)
 
     def clear_bookmarks(self):
         self.bookmarks_catalog.clearSelection()
 
+    def edit_name_category(self):
+        self.bd_editor = EditorCategory(self.path_to_bd,
+                                        self.category_catalog.itemText(self.category_catalog.currentIndex()),
+                                        self.add_to_category)
+
+    def choose_db(self):
+        main = QtWidgets.QFileDialog.getOpenFileName(self, "Выберите базу данных",
+                                                     filter="Databases Files (*.db)")[0]
+        self.path_to_bd = main
+        self.category_catalog.setEnabled(True)
+        self.add_to_category()
+
     def show_menu(self, pos):
         send = self.sender()
-        print(send.objectName())
         menu = QtWidgets.QMenu()
-        update_selection = menu.addAction("Редактиовать")
-
-        delete_selection = menu.addAction("Удалить")
         if send.objectName() == "category_catalog":
+            update_selection = menu.addAction("Редактиовать")
+            delete_selection = menu.addAction("Удалить")
+            update_selection.triggered.connect(self.edit_name_category)
+            # delete_selection.triggered.connect()
             if not send.itemText(self.category_catalog.currentIndex()):
                 update_selection.setDisabled(True)
                 delete_selection.setDisabled(True)
         if send.objectName() == "bookmarks_catalog":
+            update_selection = menu.addAction("Редактиовать")
+            delete_selection = menu.addAction("Удалить")
+            # update_selection.triggered.connect(self.edit_name_category)
+            # delete_selection.triggered.connect()
             if not self.bookmarks_catalog.selectedItems():
                 return
-        action = menu.exec_(self.mapToGlobal(pos))
+        action = menu.exec_(self.sender().mapToGlobal(pos))
 
     def add_category_to_bd(self):
-        self.bd_category_win = AdderCategoryToBD(self.catalog_with_db.itemText(self.catalog_with_db.currentIndex()))
+        self.bd_category_win = AdderCategoryToBD(pathlib.Path(self.path_to_bd).name, self.add_to_category)
 
     def add_record_to_bd(self):
-        self.bd_win = AdderRecordToBD(self.catalog_with_db.itemText(self.catalog_with_db.currentIndex()),
-                                      self.category_catalog.itemText(self.category_catalog.currentIndex()))
+        self.bd_win = AdderRecordToBD(pathlib.Path(self.path_to_bd).name,
+                                      self.category_catalog.itemText(self.category_catalog.currentIndex()),
+                                      self.get_info_cur_table)
 
     def add_to_category(self):
         self.category_catalog.clear()
-        path = pathlib.Path("databases", self.catalog_with_db.itemText(self.catalog_with_db.currentIndex()))
+        path = pathlib.Path(self.path_to_bd)
+        print(path)
         if path.exists():
             with sqlite3.connect(path) as conn:
                 cur = conn.cursor()
@@ -264,6 +287,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
                 res = [name[0] for name in res]
                 self.category_catalog.addItems(res)
+                self.add_category.setEnabled(True)
 
     def add_to_bookmarks(self, values):
         self.bookmarks_catalog.clear()
@@ -271,25 +295,24 @@ class MainWindow(QtWidgets.QMainWindow):
         self.bookmarks_catalog.addItems(catalog_items)
 
     def get_info_cur_table(self):
+        self.add_record.setEnabled(True)
+        path = pathlib.Path(self.path_to_bd)
         name = self.category_catalog.itemText(self.category_catalog.currentIndex())
-        if not name:
-            return
-        base_name = self.catalog_with_db.itemText(self.catalog_with_db.currentIndex())
-        path = pathlib.Path("databases", base_name)
+        print(name,"12")
         if path.exists():
             with sqlite3.connect(path) as conn:
                 cur = conn.cursor()
                 res = cur.execute("""
-                        SELECT name from {}
+                        SELECT name from `{}`
                         """.format(name)).fetchall()
 
                 self.add_to_bookmarks(res)
 
     def get_data(self, name):
-        path = self.catalog_with_db.itemText(self.catalog_with_db.currentIndex())
+        path = self.path_to_bd
         category = self.category_catalog.itemText(self.category_catalog.currentIndex())
 
-        with sqlite3.connect(f"databases/{path}") as conn:
+        with sqlite3.connect(path) as conn:
             cur = conn.cursor()
 
             res = cur.execute("""
@@ -309,7 +332,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
 if __name__ == "__main__":
-    # create_default_base()
     app = QtWidgets.QApplication(sys.argv)
     window = MainWindow()
     window.setFixedSize(1148, 613)
