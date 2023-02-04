@@ -16,6 +16,113 @@ def convert_date(values):
     return f"{day}.{month}.{year}"
 
 
+class EditRecord(QtWidgets.QWidget):
+    def __init__(self, cur_bd_name, cur_category_name, bookmark_edit, function_restart_bookmarks):
+        super().__init__()
+
+        self.cur_bd_name = cur_bd_name
+        self.cur_category_name = cur_category_name
+        self.bookmark_for_edit = bookmark_edit
+        self.restart_book = function_restart_bookmarks
+
+        self.name_record_edit = QtWidgets.QLineEdit()
+        self.name_record_edit.setPlaceholderText("Название")
+
+        self.wb_patch_record_edit = QtWidgets.QLineEdit()
+        self.wb_patch_record_edit.setPlaceholderText("Скрин-шот")
+        self.wb_patch_btn = QtWidgets.QPushButton("Выбрать файл")
+        self.wb_patch_btn.clicked.connect(self.select_file)
+
+        self.date_edit = QtWidgets.QLineEdit()
+        self.date_edit.setPlaceholderText("Дата")
+        self.date_btn = QtWidgets.QPushButton("...")
+        self.date_btn.clicked.connect(self.hide_calendar)
+
+        self.date_widget = QtWidgets.QCalendarWidget()
+        self.date_widget.hide()
+        self.date_widget.selectionChanged.connect(self.add_to_date)
+
+        self.url_edit = QtWidgets.QLineEdit()
+        self.url_edit.setPlaceholderText("Ссылка")
+        self.status = QtWidgets.QLineEdit()
+        self.status.setPlaceholderText("Статус")
+
+        self.description_edit = QtWidgets.QTextEdit()
+        self.description_edit.setPlaceholderText("Описание")
+
+        self.main_vbox = QtWidgets.QVBoxLayout()
+        self.main_vbox.addWidget(self.name_record_edit)
+
+        self.up_horizont = QtWidgets.QHBoxLayout()
+        self.up_horizont.addWidget(self.wb_patch_record_edit)
+        self.up_horizont.addWidget(self.wb_patch_btn)
+
+        self.down_horizont = QtWidgets.QHBoxLayout()
+        self.down_horizont.addWidget(self.date_edit)
+        self.down_horizont.addWidget(self.date_btn)
+
+        self.btn_bd_insert = QtWidgets.QPushButton("Загрузить в БД")
+        self.btn_bd_insert.clicked.connect(self.edit_record_in_db)
+
+        self.main_vbox.addWidget(self.name_record_edit)
+        self.main_vbox.addLayout(self.up_horizont)
+        self.main_vbox.addLayout(self.down_horizont)
+        self.main_vbox.addWidget(self.date_widget)
+        self.main_vbox.addWidget(self.url_edit)
+        self.main_vbox.addWidget(self.status)
+        self.main_vbox.addWidget(self.description_edit)
+        self.main_vbox.addWidget(self.btn_bd_insert)
+        self.setLayout(self.main_vbox)
+
+        self.get_info_record_for_edit()
+
+        self.show()
+
+    def hide_calendar(self):
+        if self.date_widget.isHidden():
+            self.date_widget.show()
+        else:
+            self.date_widget.hide()
+
+    def select_file(self):
+        file = QtWidgets.QFileDialog.getOpenFileName()
+        self.wb_patch_record_edit.setText(file[0])
+
+    def add_to_date(self):
+        selected_date = convert_date(self.date_widget.selectedDate().getDate())
+        self.date.setText(selected_date)
+
+    def edit_record_in_db(self):
+        path = pathlib.Path(self.cur_bd_name)
+        with sqlite3.connect(path) as conn:
+            values = (
+                str(self.name_record_edit.text()), str(self.wb_patch_record_edit.text()), str(self.date_edit.text()),
+                str(self.url_edit.text()),
+                str(self.status.text()),
+                str(self.description_edit.toPlainText()))
+            cur = conn.cursor()
+            cur.execute("""
+            INSERT INTO {name} VALUES (?,?,?,?,?,?);
+            """.format(name=self.cur_category_name), values)
+            conn.commit()
+            self.restart_book()
+
+    def get_info_record_for_edit(self):
+        print(self.bookmark_for_edit.currentRow())
+        with sqlite3.connect(self.cur_bd_name) as conn:
+            cur = conn.cursor()
+            print(self.name_record_edit)
+            table_name = self.cur_category_name
+            record_name = self.bookmark_for_edit.currentItem().text()
+            idk = self.bookmark_for_edit.currentIndex()
+            print(table_name, record_name)
+            res = cur.execute("""
+            SELECT * FROM `{table_name}`
+            WHERE name = ? and id = ?
+            """.format(table_name=table_name), (record_name, self.bookmark_for_edit.currentRow() + 1)).fetchall()
+            print(res)
+
+
 class EditorCategory(QtWidgets.QWidget):
     def __init__(self, name_cur_db, name_cur_cat, function_restart_combo):
         super().__init__()
@@ -24,32 +131,26 @@ class EditorCategory(QtWidgets.QWidget):
         self.name_cur_cat = name_cur_cat
         self.restart = function_restart_combo
 
-        self.name_category = QtWidgets.QLineEdit()
-        self.name_category.setPlaceholderText("Название категории:")
-        self.name_category.setText(self.name_cur_cat)
-        self.name_category.textChanged.connect(self.text_change)
+        self.name_category_edit = QtWidgets.QLineEdit()
+        self.name_category_edit.setPlaceholderText("Название категории:")
+        self.name_category_edit.setText(self.name_cur_cat)
         self.add_category_btn = QtWidgets.QPushButton("Редактировать категорию")
         self.add_category_btn.clicked.connect(self.editor_category)
 
         self.adder_category_vbox = QtWidgets.QVBoxLayout()
-        self.adder_category_vbox.addWidget(self.name_category)
+        self.adder_category_vbox.addWidget(self.name_category_edit)
         self.adder_category_vbox.addWidget(self.add_category_btn)
         self.setLayout(self.adder_category_vbox)
         self.show()
 
-    def text_change(self):
-        self.name_category.setText(self.name_category.text())
-
     def editor_category(self):
         with sqlite3.connect(self.name_cur_db) as conn:
-            print("1", self.name_cur_db)
             self.text_change()
             cur = conn.cursor()
-            print(self.name_category.text())
             cur.execute("""
-            ALTER TABLE `99`
-            RENAME TO t99;
-            """)
+            ALTER TABLE `{now_name_category}`
+            RENAME TO `{rename_name}`;
+            """.format(now_name_category=self.name_cur_cat, rename_name=self.name_category_edit.text()))
             conn.commit()
             self.restart()
 
@@ -127,6 +228,19 @@ class AdderRecordToBD(QtWidgets.QWidget):
         else:
             self.date_widget.hide()
 
+    def edit_record_in_db(self):
+        path = pathlib.Path("databases", self.cur_bd_name)
+        with sqlite3.connect(path) as conn:
+            values = (str(self.name.text()), str(self.wb_patch.text()), str(self.date.text()), str(self.url.text()),
+                      str(self.status.text()),
+                      str(self.description.toPlainText()))
+            cur = conn.cursor()
+            cur.execute("""
+            INSERT INTO {name} VALUES (?,?,?,?,?,?);
+            """.format(name=self.cur_category_name), values)
+            conn.commit()
+            self.restart_book()
+
     def insert_record_in_db(self):
         path = pathlib.Path("databases", self.cur_bd_name)
         with sqlite3.connect(path) as conn:
@@ -181,6 +295,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setCentralWidget(self.center_widget)
 
         self.path_to_bd = None
+        self.name_category = None
 
         self.menu = self.menuBar()
         self.menu_file_edit = self.menu.addMenu('&Файл')
@@ -188,6 +303,7 @@ class MainWindow(QtWidgets.QMainWindow):
         action_choose_db.triggered.connect(self.choose_db)
 
         self.bookmarks_catalog = QtWidgets.QListWidget(parent=self)
+        print(self.bookmarks_catalog.currentRow())
         self.bookmarks_catalog.setObjectName("bookmarks_catalog")
         self.bookmarks_catalog.move(10, 30)
         self.bookmarks_catalog.setFixedSize(276, 530)
@@ -235,8 +351,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def edit_name_category(self):
         self.bd_editor = EditorCategory(self.path_to_bd,
-                                        self.category_catalog.itemText(self.category_catalog.currentIndex()),
+                                        self.name_category,
                                         self.add_to_category)
+
+    def edit_record(self):
+        self.record_editor = EditRecord(self.path_to_bd, self.name_category, self.bookmarks_catalog,
+                                        self.get_info_cur_table)
 
     def choose_db(self):
         main = QtWidgets.QFileDialog.getOpenFileName(self, "Выберите базу данных",
@@ -247,6 +367,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def show_menu(self, pos):
         send = self.sender()
+        print(send.objectName())
         menu = QtWidgets.QMenu()
         if send.objectName() == "category_catalog":
             update_selection = menu.addAction("Редактиовать")
@@ -259,7 +380,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if send.objectName() == "bookmarks_catalog":
             update_selection = menu.addAction("Редактиовать")
             delete_selection = menu.addAction("Удалить")
-            # update_selection.triggered.connect(self.edit_name_category)
+            update_selection.triggered.connect(self.edit_record)
             # delete_selection.triggered.connect()
             if not self.bookmarks_catalog.selectedItems():
                 return
@@ -276,7 +397,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def add_to_category(self):
         self.category_catalog.clear()
         path = pathlib.Path(self.path_to_bd)
-        print(path)
         if path.exists():
             with sqlite3.connect(path) as conn:
                 cur = conn.cursor()
@@ -295,10 +415,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.bookmarks_catalog.addItems(catalog_items)
 
     def get_info_cur_table(self):
+        if not self.category_catalog.itemText(self.category_catalog.currentIndex()):
+            return
         self.add_record.setEnabled(True)
         path = pathlib.Path(self.path_to_bd)
         name = self.category_catalog.itemText(self.category_catalog.currentIndex())
-        print(name,"12")
+        self.name_category = name
         if path.exists():
             with sqlite3.connect(path) as conn:
                 cur = conn.cursor()
