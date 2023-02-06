@@ -1,15 +1,11 @@
-# import sqlite3
-import pysqlite3 as sqlite3
+import sqlite3
 import sys
 import pathlib
 from jinja2 import *
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtGui import QIcon
-# from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtWebEngineWidgets import QWebEngineView
-from flask import url_for
 from PyQt5.QtCore import Qt
-import psycopg2
 
 
 def convert_date(values):
@@ -190,6 +186,7 @@ class AdderRecordToBD(QtWidgets.QWidget):
 
         self.name = QtWidgets.QLineEdit()
         self.name.setPlaceholderText("Название")
+        self.name.textChanged.connect(self.check_name_record)
 
         self.wb_patch = QtWidgets.QLineEdit()
         self.wb_patch.setPlaceholderText("Скрин-шот")
@@ -266,6 +263,19 @@ class AdderRecordToBD(QtWidgets.QWidget):
             conn.commit()
             self.restart_book()
 
+    def check_name_record(self):
+        with sqlite3.connect(self.cur_bd_name) as conn:
+            cur = conn.cursor()
+            category = self.cur_category_name
+            res = cur.execute("""
+            SELECT name from '{category}';
+            """.format(category=category)).fetchall()
+            res = [name[0] for name in res]
+            if self.name in res:
+                self.name.
+
+            # if self.name.text()
+
     def insert_record_in_db(self):
         path = pathlib.Path("databases", self.cur_bd_name)
         with sqlite3.connect(path) as conn:
@@ -274,7 +284,7 @@ class AdderRecordToBD(QtWidgets.QWidget):
                       str(self.description.toPlainText()))
             cur = conn.cursor()
             cur.execute("""
-            INSERT INTO {name} (`name`, `screen_name`, `date`, `url`, `status`, `description`)
+            INSERT INTO `{name}` (`name`, `screen_name`, `date`, `url`, `status`, `description`)
             VALUES (?,?,?,?,?,?);
             """.format(name=self.cur_category_name), values)
             conn.commit()
@@ -348,13 +358,14 @@ class MainWindow(QtWidgets.QMainWindow):
             self.add_category.setDisabled(True)
         self.add_category.move(10, 565)
         self.add_category.setFixedSize(25, 25)
-        self.add_category.setIcon(QIcon("images/refresh_icon.png"))
+        self.add_category.setIcon(QIcon("images/add_record.png"))
         self.add_category.clicked.connect(self.add_category_to_bd)
 
         self.add_record = QtWidgets.QPushButton(parent=self)
         self.add_record.move(50, 565)
         self.add_record.setFixedSize(25, 25)
-        self.add_record.setIcon(QIcon("images/refresh_icon.png"))
+        self.add_record.setIcon(QIcon("images/add_category.png"))
+
         self.add_record.clicked.connect(self.add_record_to_bd)
 
         self.category_catalog = QtWidgets.QComboBox(parent=self)
@@ -381,13 +392,38 @@ class MainWindow(QtWidgets.QMainWindow):
                                         self.name_category,
                                         self.add_to_category)
 
+    def delete_cat(self):
+        with sqlite3.connect(self.path_to_bd) as conn:
+            cur = conn.cursor()
+            cur.execute("""
+            DROP TABLE `{table_name}`
+            """.format(table_name=self.category_catalog.itemText(self.category_catalog.currentIndex())))
+            conn.commit()
+            self.add_to_category()
+
     def edit_record(self):
         self.record_editor = EditRecord(self.path_to_bd, self.name_category, self.bookmarks_catalog,
                                         self.get_info_cur_table)
 
+    def delete_record(self):
+        with sqlite3.connect(self.path_to_bd) as conn:
+            cur = conn.cursor()
+            category_name = self.category_catalog.itemText(self.category_catalog.currentIndex())
+            cur_record_name = self.bookmarks_catalog.currentItem().text()
+            # id_record = self.bookmarks_catalog.currentRow() + 1
+            cur.execute("""
+            DELETE FROM `{category_name}`
+            WHERE name = '{name_record}'
+            """.format(category_name=category_name, name_record=cur_record_name))
+            conn.commit()
+            self.bookmarks_catalog.clear()
+            data = self.get_info_for_book()
+            self.add_to_bookmarks(self.get_info_for_book())
+
     def choose_db(self):
         main = QtWidgets.QFileDialog.getOpenFileName(self, "Выберите базу данных",
-                                                     filter="Databases Files (*.db)", options=QtWidgets.QFileDialog.DontUseNativeDialog)[0]
+                                                     filter="Databases Files (*.db)",
+                                                     options=QtWidgets.QFileDialog.DontUseNativeDialog)[0]
         self.path_to_bd = main
         self.category_catalog.setEnabled(True)
         self.add_to_category()
@@ -399,7 +435,7 @@ class MainWindow(QtWidgets.QMainWindow):
             update_selection = menu.addAction("Редактиовать")
             delete_selection = menu.addAction("Удалить")
             update_selection.triggered.connect(self.edit_name_category)
-            # delete_selection.triggered.connect()
+            delete_selection.triggered.connect(self.delete_cat)
             if not send.itemText(self.category_catalog.currentIndex()):
                 update_selection.setDisabled(True)
                 delete_selection.setDisabled(True)
@@ -407,7 +443,7 @@ class MainWindow(QtWidgets.QMainWindow):
             update_selection = menu.addAction("Редактиовать")
             delete_selection = menu.addAction("Удалить")
             update_selection.triggered.connect(self.edit_record)
-            # delete_selection.triggered.connect()
+            delete_selection.triggered.connect(self.delete_record)
             if not self.bookmarks_catalog.selectedItems():
                 return
         action = menu.exec_(self.sender().mapToGlobal(pos))
@@ -416,11 +452,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.bd_category_win = AdderCategoryToBD(pathlib.Path(self.path_to_bd).name, self.add_to_category)
 
     def add_record_to_bd(self):
-        self.bd_win = AdderRecordToBD(pathlib.Path(self.path_to_bd).name,
+        self.bd_win = AdderRecordToBD(pathlib.Path(self.path_to_bd),
                                       self.category_catalog.itemText(self.category_catalog.currentIndex()),
                                       self.get_info_cur_table)
 
     def add_to_category(self):
+        self.bookmarks_catalog.clear()
         self.category_catalog.clear()
         path = pathlib.Path(self.path_to_bd)
         if path.exists():
@@ -440,6 +477,17 @@ class MainWindow(QtWidgets.QMainWindow):
         catalog_items = [item[0] for item in values]
         self.bookmarks_catalog.addItems(catalog_items)
 
+    def get_info_for_book(self):
+        name = self.category_catalog.itemText(self.category_catalog.currentIndex())
+        path = pathlib.Path(self.path_to_bd)
+        if path.exists():
+            with sqlite3.connect(path) as conn:
+                cur = conn.cursor()
+                res = cur.execute("""
+                        SELECT name from `{}`
+                        """.format(name)).fetchall()
+                return res
+
     def get_info_cur_table(self):
         if not self.category_catalog.itemText(self.category_catalog.currentIndex()):
             return
@@ -447,14 +495,9 @@ class MainWindow(QtWidgets.QMainWindow):
         path = pathlib.Path(self.path_to_bd)
         name = self.category_catalog.itemText(self.category_catalog.currentIndex())
         self.name_category = name
-        if path.exists():
-            with sqlite3.connect(path) as conn:
-                cur = conn.cursor()
-                res = cur.execute("""
-                        SELECT name from `{}`
-                        """.format(name)).fetchall()
+        res = self.get_info_for_book()
 
-                self.add_to_bookmarks(res)
+        self.add_to_bookmarks(res)
 
     def get_data(self, name):
         path = self.path_to_bd
@@ -464,7 +507,7 @@ class MainWindow(QtWidgets.QMainWindow):
             cur = conn.cursor()
 
             res = cur.execute("""
-            SELECT * from {}
+            SELECT * from `{}`
             WHERE name = ?
             """.format(category), (name,)).fetchall()
             return res
@@ -473,18 +516,10 @@ class MainWindow(QtWidgets.QMainWindow):
         values = self.get_data(self.bookmarks_catalog.currentItem().text())
         file_loader = FileSystemLoader('')
         env = Environment(loader=file_loader)
-        # env.globals.update("static")
         template = env.get_template('templates/index.html')
         path = pathlib.Path("static/style.css").absolute()
-        # csslink = url_for('static/', filename='style.css')
-        path = str(path)
         output = template.render(values=values, path_css=path)
-        print(output)
-        css = QtCore.QUrl("static/style.css")
         self.web_view.setHtml(output)
-        # self.web_view.page().settings().set
-        # self.web_view.settings().setUserStyleSheetUrl(QtCore.QUrl.fromLocalFile(str(path)))
-        # self.web_view.load(QtCore.QUrl("static/style.css"))
         self.web_view.show()
 
 
