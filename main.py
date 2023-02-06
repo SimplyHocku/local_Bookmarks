@@ -1,4 +1,5 @@
-import sqlite3
+# import sqlite3
+import pysqlite3 as sqlite3
 import sys
 import pathlib
 from jinja2 import *
@@ -6,7 +7,9 @@ from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtGui import QIcon
 # from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtWebEngineWidgets import QWebEngineView
+from flask import url_for
 from PyQt5.QtCore import Qt
+import psycopg2
 
 
 def convert_date(values):
@@ -14,6 +17,17 @@ def convert_date(values):
     month = values[1]
     year = values[0]
     return f"{day}.{month}.{year}"
+
+
+def get_info_from_db_for_edit(cur_bd, table_name, record_name, index_row):
+    with sqlite3.connect(cur_bd) as conn:
+        cur = conn.cursor()
+        res = cur.execute("""
+                    SELECT * FROM `{table_name}`
+                    WHERE `name` = ? and `id` = ?
+                    """.format(table_name=table_name),
+                          (record_name, index_row)).fetchall()
+        return res
 
 
 class EditRecord(QtWidgets.QWidget):
@@ -44,8 +58,8 @@ class EditRecord(QtWidgets.QWidget):
 
         self.url_edit = QtWidgets.QLineEdit()
         self.url_edit.setPlaceholderText("Ссылка")
-        self.status = QtWidgets.QLineEdit()
-        self.status.setPlaceholderText("Статус")
+        self.status_edit = QtWidgets.QLineEdit()
+        self.status_edit.setPlaceholderText("Статус")
 
         self.description_edit = QtWidgets.QTextEdit()
         self.description_edit.setPlaceholderText("Описание")
@@ -61,7 +75,7 @@ class EditRecord(QtWidgets.QWidget):
         self.down_horizont.addWidget(self.date_edit)
         self.down_horizont.addWidget(self.date_btn)
 
-        self.btn_bd_insert = QtWidgets.QPushButton("Загрузить в БД")
+        self.btn_bd_insert = QtWidgets.QPushButton("Редактировать запись")
         self.btn_bd_insert.clicked.connect(self.edit_record_in_db)
 
         self.main_vbox.addWidget(self.name_record_edit)
@@ -69,7 +83,7 @@ class EditRecord(QtWidgets.QWidget):
         self.main_vbox.addLayout(self.down_horizont)
         self.main_vbox.addWidget(self.date_widget)
         self.main_vbox.addWidget(self.url_edit)
-        self.main_vbox.addWidget(self.status)
+        self.main_vbox.addWidget(self.status_edit)
         self.main_vbox.addWidget(self.description_edit)
         self.main_vbox.addWidget(self.btn_bd_insert)
         self.setLayout(self.main_vbox)
@@ -93,34 +107,45 @@ class EditRecord(QtWidgets.QWidget):
         self.date.setText(selected_date)
 
     def edit_record_in_db(self):
-        path = pathlib.Path(self.cur_bd_name)
+        path = pathlib.Path('databases').joinpath(pathlib.Path(self.cur_bd_name).name).absolute()
         with sqlite3.connect(path) as conn:
             values = (
                 str(self.name_record_edit.text()), str(self.wb_patch_record_edit.text()), str(self.date_edit.text()),
                 str(self.url_edit.text()),
-                str(self.status.text()),
-                str(self.description_edit.toPlainText()))
+                str(self.status_edit.text()),
+                str(self.description_edit.toPlainText()), self.bookmark_for_edit.currentRow() + 1)
             cur = conn.cursor()
             cur.execute("""
-            INSERT INTO {name} VALUES (?,?,?,?,?,?);
+            UPDATE `{name}`
+            SET `name` = ?,
+            `screen_name` = ?,
+            `date` = ?,
+            `url` = ?,
+            `status` = ?,
+            `description` = ? 
+             WHERE `id` = ?
             """.format(name=self.cur_category_name), values)
             conn.commit()
             self.restart_book()
 
     def get_info_record_for_edit(self):
-        print(self.bookmark_for_edit.currentRow())
-        with sqlite3.connect(self.cur_bd_name) as conn:
-            cur = conn.cursor()
-            print(self.name_record_edit)
-            table_name = self.cur_category_name
-            record_name = self.bookmark_for_edit.currentItem().text()
-            idk = self.bookmark_for_edit.currentIndex()
-            print(table_name, record_name)
-            res = cur.execute("""
-            SELECT * FROM `{table_name}`
-            WHERE name = ? and id = ?
-            """.format(table_name=table_name), (record_name, self.bookmark_for_edit.currentRow() + 1)).fetchall()
-            print(res)
+        table_name = self.cur_category_name
+        record_name = self.bookmark_for_edit.currentItem().text()
+        res = get_info_from_db_for_edit(self.cur_bd_name, table_name, record_name,
+                                        self.bookmark_for_edit.currentRow() + 1)
+        name = res[0][1]
+        path_to_screen = res[0][2]
+        date_to_screen = res[0][3]
+        url = res[0][4]
+        status = res[0][5]
+        description = res[0][6]
+
+        self.name_record_edit.setText(name)
+        self.wb_patch_record_edit.setText(path_to_screen)
+        self.date_edit.setText(date_to_screen)
+        self.url_edit.setText(url)
+        self.status_edit.setText(status)
+        self.description_edit.setText(description)
 
 
 class EditorCategory(QtWidgets.QWidget):
@@ -145,7 +170,7 @@ class EditorCategory(QtWidgets.QWidget):
 
     def editor_category(self):
         with sqlite3.connect(self.name_cur_db) as conn:
-            self.text_change()
+            # self.text_change()
             cur = conn.cursor()
             cur.execute("""
             ALTER TABLE `{now_name_category}`
@@ -236,7 +261,7 @@ class AdderRecordToBD(QtWidgets.QWidget):
                       str(self.description.toPlainText()))
             cur = conn.cursor()
             cur.execute("""
-            INSERT INTO {name} VALUES (?,?,?,?,?,?);
+            INSERT INTO {name}  VALUES (?,?,?,?,?,?);
             """.format(name=self.cur_category_name), values)
             conn.commit()
             self.restart_book()
@@ -249,7 +274,8 @@ class AdderRecordToBD(QtWidgets.QWidget):
                       str(self.description.toPlainText()))
             cur = conn.cursor()
             cur.execute("""
-            INSERT INTO {name} VALUES (?,?,?,?,?,?);
+            INSERT INTO {name} (`name`, `screen_name`, `date`, `url`, `status`, `description`)
+            VALUES (?,?,?,?,?,?);
             """.format(name=self.cur_category_name), values)
             conn.commit()
             self.restart_book()
@@ -280,7 +306,7 @@ class AdderCategoryToBD(QtWidgets.QWidget):
             cur = conn.cursor()
 
             cur.execute("""
-            CREATE TABLE `{name}` (name text, screen_name text, date text, url text, status text, description text);
+            CREATE TABLE `{name}` (id INTEGER PRIMARY KEY AUTOINCREMENT, name text, screen_name text, date text, url text, status text, description text);
             """.format(name=name_category))
             conn.commit()
 
@@ -303,7 +329,6 @@ class MainWindow(QtWidgets.QMainWindow):
         action_choose_db.triggered.connect(self.choose_db)
 
         self.bookmarks_catalog = QtWidgets.QListWidget(parent=self)
-        print(self.bookmarks_catalog.currentRow())
         self.bookmarks_catalog.setObjectName("bookmarks_catalog")
         self.bookmarks_catalog.move(10, 30)
         self.bookmarks_catalog.setFixedSize(276, 530)
@@ -313,6 +338,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.bookmarks_catalog.itemDoubleClicked.connect(self.render_main_blog)
 
         self.web_view = QWebEngineView(parent=self)
+        self.web_view.settings()
+        self.web_view.setStyleSheet("databases")
         self.web_view.setFixedSize(840, 530)
         self.web_view.move(300, 30)
 
@@ -360,14 +387,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def choose_db(self):
         main = QtWidgets.QFileDialog.getOpenFileName(self, "Выберите базу данных",
-                                                     filter="Databases Files (*.db)")[0]
+                                                     filter="Databases Files (*.db)", options=QtWidgets.QFileDialog.DontUseNativeDialog)[0]
         self.path_to_bd = main
         self.category_catalog.setEnabled(True)
         self.add_to_category()
 
     def show_menu(self, pos):
         send = self.sender()
-        print(send.objectName())
         menu = QtWidgets.QMenu()
         if send.objectName() == "category_catalog":
             update_selection = menu.addAction("Редактиовать")
@@ -447,9 +473,18 @@ class MainWindow(QtWidgets.QMainWindow):
         values = self.get_data(self.bookmarks_catalog.currentItem().text())
         file_loader = FileSystemLoader('')
         env = Environment(loader=file_loader)
+        # env.globals.update("static")
         template = env.get_template('templates/index.html')
-        output = template.render(values=values)
+        path = pathlib.Path("static/style.css").absolute()
+        # csslink = url_for('static/', filename='style.css')
+        path = str(path)
+        output = template.render(values=values, path_css=path)
+        print(output)
+        css = QtCore.QUrl("static/style.css")
         self.web_view.setHtml(output)
+        # self.web_view.page().settings().set
+        # self.web_view.settings().setUserStyleSheetUrl(QtCore.QUrl.fromLocalFile(str(path)))
+        # self.web_view.load(QtCore.QUrl("static/style.css"))
         self.web_view.show()
 
 
