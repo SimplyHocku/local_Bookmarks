@@ -4,16 +4,21 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" type="text/css" href="qrc:{{ path_css }}">
+    <link rel="stylesheet" type="text/css" href="../static/normalize.css">
+    <link rel="stylesheet" type="text/css" href="../static/style.css">
     <title>Document</title>
+    <style>
+
+    </style>
 </head>
 <body class="test">
-{% for value in values %}
-    <h1 class=".one">
-        djn
-        {{ value }}
-        {{ path_css }}
-    </h1>
+    <div class="main">
+        {% for value in values %}
+        {% set name, path_image, date, url, status, desc = value[1], value[2], value[3], value[4], value[5], value[6] %}
+        <img src="{{path_image}}" alt="{{name}}">
+    </div>
 {% endfor %}
 </body>
 </html>
+
+

@@ -112,13 +112,13 @@ class EditRecord(QtWidgets.QWidget):
         self.date.setText(selected_date)
 
     def edit_record_in_db(self):
-        path = pathlib.Path('databases').joinpath(pathlib.Path(self.cur_bd_name).name).absolute()
-        with sqlite3.connect(path) as conn:
+        # path = pathlib.Path('databases').joinpath(pathlib.Path(self.cur_bd_name).name).absolute()
+        with sqlite3.connect(self.cur_bd_name) as conn:
             values = (
                 str(self.name_record_edit.text()), str(self.wb_patch_record_edit.text()), str(self.date_edit.text()),
                 str(self.url_edit.text()),
                 str(self.status_edit.text()),
-                str(self.description_edit.toPlainText()), self.bookmark_for_edit.currentRow() + 1)
+                str(self.description_edit.toPlainText()))
             cur = conn.cursor()
             cur.execute("""
             UPDATE `{name}`
@@ -128,7 +128,6 @@ class EditRecord(QtWidgets.QWidget):
             `url` = ?,
             `status` = ?,
             `description` = ? 
-             WHERE `id` = ?
             """.format(name=self.cur_category_name), values)
             conn.commit()
             self.restart_book()

@@ -1,10 +1,10 @@
-#-*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 import sys
 import pathlib
 import sqlite3
 from jinja2 import *
 from PyQt5 import QtWidgets, QtCore
-from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QIcon, QTransform, QPixmap
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtCore import Qt
 from windows import AdderCategoryToBD, AdderRecordToBD, EditorCategory, EditRecord
@@ -25,6 +25,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.menu_file_edit = self.menu.addMenu('&Файл')
         action_choose_db = self.menu_file_edit.addAction("Выбрать базу данных")
         action_choose_db.triggered.connect(self.choose_db)
+
+        pixmap = QPixmap()
+        transform_for_label = QTransform().rotate(90)
+        self.label_show_list = QtWidgets.QLabel(parent=self)
+        self.label_show_list.setPixmap(pixmap.transformed(transform_for_label))
 
         self.bookmarks_catalog = QtWidgets.QListWidget(parent=self)
         self.bookmarks_catalog.setObjectName("bookmarks_catalog")
@@ -197,21 +202,39 @@ class MainWindow(QtWidgets.QMainWindow):
             """.format(category), (name,)).fetchall()
             return res
 
+    # def render_main_blog(self):
+    #     values = self.get_data(self.bookmarks_catalog.currentItem().text())
+    #     file_loader = FileSystemLoader('')
+    #     env = Environment(loader=file_loader)
+    #     template = env.get_template('templates/index.html')
+    #     path = pathlib.Path("static/style.css").absolute()
+    #     output = template.render(values=values, path_css=path)
+    #     self.web_view.setHtml(output)
+    #     self.web_view.show()
+
     def render_main_blog(self):
+        self.web_view.load((QtCore.QUrl("about:blank")))
         values = self.get_data(self.bookmarks_catalog.currentItem().text())
         file_loader = FileSystemLoader('')
         env = Environment(loader=file_loader)
         template = env.get_template('templates/index.html')
-        path = pathlib.Path("static/style.css").absolute()
-        output = template.render(values=values, path_css=path)
-        self.web_view.setHtml(output)
+        output = template.render(values=values)
+        with open("templates/output.html", "w") as file:
+            file.write(output)
+        # print(output)
+        path = pathlib.Path("templates/output.html").absolute()
+        # self.web_view.setHtml(output)
+        # print(path)
+        self.web_view.load((QtCore.QUrl().fromLocalFile(str(path))))
+        # self.web_view.load(QtCore.QUrl().from)
         self.web_view.show()
 
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     window = MainWindow()
-    window.setFixedSize(1148, 613)
+    # window.setFixedSize(1148, 613)
+    window.showMaximized()
     # window
     window.show()
     sys.exit(app.exec_())
