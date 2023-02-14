@@ -1,7 +1,40 @@
 import sqlite3
 import pathlib
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtWidgets, QtCore, QtGui
 from other_functions import *
+
+
+class EventButton(QtWidgets.QToolButton):
+    def __init__(self, parent, widget_edit, QWidget=None, *args, **kwargs):
+        super().__init__()
+        self.widget_for_edit = widget_edit
+        self.setParent(parent)
+        self.resize(50,20)
+        # self.widget_for_edit = QtWidgets.QListWidget()
+
+        # self.widget_for_edit.set
+
+        self.animation_up = QtCore.QPropertyAnimation(self.widget_for_edit, b'geometry')
+        self.animation_down = QtCore.QPropertyAnimation(self.widget_for_edit, b'geometry')
+        self.show()
+
+    def mouseMoveEvent(self, e: QtGui.QMouseEvent) -> None:
+        print("1")
+
+    def enterEvent(self, a0: QtCore.QEvent) -> None:
+        print("enter")
+        # if self.widget_for_edit
+        self.animation_down.setDuration(900)
+        self.animation_down.setStartValue(QtCore.QRect(1, 5, 300, 1))
+        self.animation_down.setEndValue(QtCore.QRect(1, 5, 300, 300))
+        self.animation_down.start()
+
+    def leaveEvent(self, a0: QtCore.QEvent) -> None:
+        print("leave")
+        self.animation_up.setDuration(900)
+        self.animation_up.setStartValue(QtCore.QRect(1, 5, 300, 300))
+        self.animation_up.setEndValue(QtCore.QRect(1, 5, 300, 1))
+        self.animation_up.start()
 
 
 class EditRecord(QtWidgets.QWidget):

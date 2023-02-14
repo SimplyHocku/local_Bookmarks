@@ -7,7 +7,7 @@ from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtGui import QIcon, QTransform, QPixmap
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtCore import Qt
-from windows import AdderCategoryToBD, AdderRecordToBD, EditorCategory, EditRecord
+from windows import AdderCategoryToBD, AdderRecordToBD, EditorCategory, EditRecord, EventButton
 from other_functions import *
 
 
@@ -17,42 +17,79 @@ class MainWindow(QtWidgets.QMainWindow):
         super().__init__()
         self.center_widget = QtWidgets.QWidget()
         self.setCentralWidget(self.center_widget)
+        self.web_view = QWebEngineView(parent=self)
+        self.setCentralWidget(self.web_view)
 
         self.path_to_bd = None
         self.name_category = None
 
         self.menu = self.menuBar()
+        # self.menu.addAction(QtWidgets.QAction("1"))
         self.menu_file_edit = self.menu.addMenu('&Файл')
+        self.widget_menu = self.menu.addMenu("Виджеты")
         action_choose_db = self.menu_file_edit.addAction("Выбрать базу данных")
+        self.add_category_action = self.menu_file_edit.addAction("Добавить категорию")
+        add_record_action = self.menu_file_edit.addAction("Добавить закладку")
+
+        action_choose_db.setShortcut("Ctrl+O")
         action_choose_db.triggered.connect(self.choose_db)
 
-        pixmap = QPixmap()
-        transform_for_label = QTransform().rotate(90)
-        self.label_show_list = QtWidgets.QLabel(parent=self)
-        self.label_show_list.setPixmap(pixmap.transformed(transform_for_label))
+        tool_bar_anim_btn = self.widget_menu.addAction("Открыть список с закладками")
+        tool_bar_anim_btn.setShortcut("Ctrl+L")
+        tool_bar_anim_btn.triggered.connect(self.down_up_list)
+
+        if self.path_to_bd is None:
+            self.add_category_action.setDisabled(True)
+        self.add_category_action.triggered.connect(self.add_category_to_bd)
+
+        # self.add_category = QtWidgets.QPushButton(parent=self)
+        # if self.path_to_bd is None:
+        #     self.add_category.setDisabled(True)
+        # self.add_category.move(10, 565)
+        # self.add_category.setFixedSize(25, 25)
+        # self.add_category.setIcon(QIcon("images/add_record.png"))
+        # self.add_category.clicked.connect(self.add_category_to_bd)
 
         self.bookmarks_catalog = QtWidgets.QListWidget(parent=self)
+
+        # self.bookmarks_catalog.hide()
+        self.animation_for_book_cat = QtCore.QPropertyAnimation(self.bookmarks_catalog, b"geometry")
+        self.bookmarks_catalog.setProperty("position", "up")
         self.bookmarks_catalog.setObjectName("bookmarks_catalog")
-        self.bookmarks_catalog.move(10, 30)
-        self.bookmarks_catalog.setFixedSize(276, 530)
+        print(tool_bar_anim_btn)
+        # self.bookmarks_catalog.move(10, 1000)
+        self.bookmarks_catalog.setGeometry(QtCore.QRect(1, 5, 300, 0))
+        # self.bookmarks_catalog.setFixedSize(276, 530)
         self.bookmarks_catalog.setContextMenuPolicy(Qt.CustomContextMenu)
 
+
+
+        # self.animation_for_tool_btn.start()
+        # self.test_tool = EventButton(widget_edit=self.bookmarks_catalog, parent=self)
+
+        # action_choose_db = self.menu_file_edit.addAction("Выбрать базу данных")
+        # action_choose_db.setShortcut("Ctrl+O")
+        # action_choose_db.triggered.connect(self.choose_db)
+
+        # self.tool.addAction(self.tool_bar_anim_btn)
         self.bookmarks_catalog.customContextMenuRequested.connect(self.show_menu)
         self.bookmarks_catalog.itemDoubleClicked.connect(self.render_main_blog)
 
-        self.web_view = QWebEngineView(parent=self)
+        # self.web_view = QWebEngineView(parent=self)
+        # self.setCentralWidget(self.web_view)
         self.web_view.settings()
         self.web_view.setStyleSheet("databases")
-        self.web_view.setFixedSize(840, 530)
-        self.web_view.move(300, 30)
+        # self.web_view.setSizePolicy()
+        self.web_view.move(300, 50)
+        self.web_view.showMaximized()
 
-        self.add_category = QtWidgets.QPushButton(parent=self)
-        if self.path_to_bd is None:
-            self.add_category.setDisabled(True)
-        self.add_category.move(10, 565)
-        self.add_category.setFixedSize(25, 25)
-        self.add_category.setIcon(QIcon("images/add_record.png"))
-        self.add_category.clicked.connect(self.add_category_to_bd)
+        # self.add_category = QtWidgets.QPushButton(parent=self)
+        # if self.path_to_bd is None:
+        #     self.add_category.setDisabled(True)
+        # self.add_category.move(10, 565)
+        # self.add_category.setFixedSize(25, 25)
+        # self.add_category.setIcon(QIcon("images/add_record.png"))
+        # self.add_category.clicked.connect(self.add_category_to_bd)
 
         self.add_record = QtWidgets.QPushButton(parent=self)
         self.add_record.move(50, 565)
@@ -76,6 +113,22 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.category_catalog.currentIndexChanged.connect(self.get_info_cur_table)
         self.category_catalog.customContextMenuRequested.connect(self.show_menu)
+
+    def down_up_list(self):
+        if self.bookmarks_catalog.property("position") == "up":
+            self.animation_for_book_cat.setDuration(500)
+            self.animation_for_book_cat.setStartValue(QtCore.QRect(55, 10, 300, 0))
+            self.animation_for_book_cat.setEndValue(QtCore.QRect(55, 20, 300, 300))
+            self.animation_for_book_cat.start()
+            self.bookmarks_catalog.setProperty("position", "down")
+        else:
+            self.animation_for_book_cat.setDuration(500)
+            self.animation_for_book_cat.setStartValue(QtCore.QRect(55, 20, 300, 300))
+            self.animation_for_book_cat.setEndValue(QtCore.QRect(55, 20, 300, 0))
+            self.animation_for_book_cat.start()
+            self.bookmarks_catalog.setProperty("position", "up")
+            # self.bookmarks_catalog.hide()
+
 
     def clear_bookmarks(self):
         self.bookmarks_catalog.clearSelection()
@@ -161,7 +214,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
                 res = [name[0] for name in res]
                 self.category_catalog.addItems(res)
-                self.add_category.setEnabled(True)
+                self.add_category_action.setEnabled(True)
 
     def add_to_bookmarks(self, values):
         self.bookmarks_catalog.clear()
@@ -227,14 +280,14 @@ class MainWindow(QtWidgets.QMainWindow):
         # print(path)
         self.web_view.load((QtCore.QUrl().fromLocalFile(str(path))))
         # self.web_view.load(QtCore.QUrl().from)
-        self.web_view.show()
+        # self.web_view.show()
 
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     window = MainWindow()
-    # window.setFixedSize(1148, 613)
+    # window.setBaseSize(1148, 613)
     window.showMaximized()
     # window
-    window.show()
+    # window.show()
     sys.exit(app.exec_())
