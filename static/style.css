@@ -1,0 +1,19 @@
+.flex {
+display: flex;
+}
+
+.main_div {
+    width: 1366px;
+  align-items: center;
+  justify-content: center;
+}
+
+p {
+    margin: 0;
+    padding: 0;
+}
+
+.up_section {
+    display: flex;
+    flex-direction: row;
+}

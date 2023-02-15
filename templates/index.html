@@ -16,9 +16,9 @@
         {% for value in values %}
         {% set name, path_image, date, url, status, desc = value[1], value[2], value[3], value[4], value[5], value[6] %}
 
-    <div class="main_div">
+    <div class="main_div flex">
 
-        <div class="left_div">
+        <div class="left_div flex">
         <img src="{{path_image}}" alt="{{name}}">
         <h1>{{ name  }}</h1>
         </div>
