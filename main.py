@@ -7,7 +7,7 @@ from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtGui import QIcon, QTransform, QPixmap
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtCore import Qt
-from windows import AdderCategoryToBD, AdderRecordToBD, EditorCategory, EditRecord, EventButton
+from windows import AdderCategoryToBD, AdderRecordToBD, EditorCategory, EditRecord
 from other_functions import *
 
 
@@ -18,13 +18,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.center_widget = QtWidgets.QWidget()
         self.setCentralWidget(self.center_widget)
         self.web_view = QWebEngineView(parent=self)
+        # self.web_view.settings().setDefaultTextEncoding("windows-1251")
         self.setCentralWidget(self.web_view)
 
         self.path_to_bd = None
         self.name_category = None
 
         self.menu = self.menuBar()
-        # self.menu.addAction(QtWidgets.QAction("1"))
 
         self.menu_file_edit = self.menu.addMenu('&Файл')
         self.widget_menu = self.menu.addMenu("Виджеты")
@@ -222,14 +222,17 @@ class MainWindow(QtWidgets.QMainWindow):
     def render_main_blog(self):
         self.web_view.load((QtCore.QUrl("about:blank")))
         values = self.get_data(self.bookmarks_catalog.currentItem().text())
+        print(values)
         file_loader = FileSystemLoader('')
         env = Environment(loader=file_loader)
         template = env.get_template('templates/index.html')
         output = template.render(values=values)
-        with open("templates/output.html", "w") as file:
-            file.write(output)
+        with open("templates/output.html", "wb") as file:
+            file.write(output.encode("utf-8"))
         path = pathlib.Path("templates/output.html").absolute()
-        self.web_view.load((QtCore.QUrl().fromLocalFile(str(path))))
+        self.web_view.setUrl(QtCore.QUrl().fromLocalFile(str(path)))
+        # self.web_view.
+        # self.web_view.load((QtCore.QUrl().fromLocalFile(str(path))))
 
 
 if __name__ == "__main__":

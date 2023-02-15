@@ -4,39 +4,6 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 from other_functions import *
 
 
-class EventButton(QtWidgets.QToolButton):
-    def __init__(self, parent, widget_edit, QWidget=None, *args, **kwargs):
-        super().__init__()
-        self.widget_for_edit = widget_edit
-        self.setParent(parent)
-        self.resize(50,20)
-        # self.widget_for_edit = QtWidgets.QListWidget()
-
-        # self.widget_for_edit.set
-
-        self.animation_up = QtCore.QPropertyAnimation(self.widget_for_edit, b'geometry')
-        self.animation_down = QtCore.QPropertyAnimation(self.widget_for_edit, b'geometry')
-        self.show()
-
-    def mouseMoveEvent(self, e: QtGui.QMouseEvent) -> None:
-        print("1")
-
-    def enterEvent(self, a0: QtCore.QEvent) -> None:
-        print("enter")
-        # if self.widget_for_edit
-        self.animation_down.setDuration(900)
-        self.animation_down.setStartValue(QtCore.QRect(1, 5, 300, 1))
-        self.animation_down.setEndValue(QtCore.QRect(1, 5, 300, 300))
-        self.animation_down.start()
-
-    def leaveEvent(self, a0: QtCore.QEvent) -> None:
-        print("leave")
-        self.animation_up.setDuration(900)
-        self.animation_up.setStartValue(QtCore.QRect(1, 5, 300, 300))
-        self.animation_up.setEndValue(QtCore.QRect(1, 5, 300, 1))
-        self.animation_up.start()
-
-
 class EditRecord(QtWidgets.QWidget):
     def __init__(self, cur_bd_name, cur_category_name, bookmark_edit, function_restart_bookmarks):
         super().__init__()
@@ -142,16 +109,18 @@ class EditRecord(QtWidgets.QWidget):
 
     def add_to_date(self):
         selected_date = convert_date(self.date_widget.selectedDate().getDate())
-        self.date.setText(selected_date)
+        self.date_edit.setText(selected_date)
 
     def edit_record_in_db(self):
         # path = pathlib.Path('databases').joinpath(pathlib.Path(self.cur_bd_name).name).absolute()
         with sqlite3.connect(self.cur_bd_name) as conn:
+            print(str(self.name_record_edit.text()))
+            print(self.bookmark_for_edit.currentItem().text())
             values = (
                 str(self.name_record_edit.text()), str(self.wb_patch_record_edit.text()), str(self.date_edit.text()),
                 str(self.url_edit.text()),
                 str(self.status_edit.text()),
-                str(self.description_edit.toPlainText()))
+                str(self.description_edit.toPlainText()), str(self.bookmark_for_edit.currentItem().text()))
             cur = conn.cursor()
             cur.execute("""
             UPDATE `{name}`
@@ -161,6 +130,7 @@ class EditRecord(QtWidgets.QWidget):
             `url` = ?,
             `status` = ?,
             `description` = ? 
+            WHERE name = ?
             """.format(name=self.cur_category_name), values)
             conn.commit()
             self.restart_book()

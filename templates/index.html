@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
+<!--    <meta charset="windows-1251">-->
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" type="text/css" href="../static/normalize.css">
@@ -12,11 +13,25 @@
     </style>
 </head>
 <body class="test">
-    <div class="main">
         {% for value in values %}
         {% set name, path_image, date, url, status, desc = value[1], value[2], value[3], value[4], value[5], value[6] %}
+
+    <div class="main_div">
+
+        <div class="left_div">
         <img src="{{path_image}}" alt="{{name}}">
+        <h1>{{ name  }}</h1>
+        </div>
+        <div class="up_section">
+            <p>{{ date }}</p>
+            <p>{{ url }}</p>
+            <p>{{ status }}</p>
+        </div>
+        <div class="down_section">
+            <p>{{ desc }}</p>
+        </div>
     </div>
+
 {% endfor %}
 </body>
 </html>
