@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-<!--    <meta charset="windows-1251">-->
+    <!--    <meta charset="windows-1251">-->
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" type="text/css" href="../static/normalize.css">
@@ -13,24 +13,38 @@
     </style>
 </head>
 <body class="test">
-        {% for value in values %}
-        {% set name, path_image, date, url, status, desc = value[1], value[2], value[3], value[4], value[5], value[6] %}
+{% for value in values %}
+{% set name, path_image, date, url, status, desc = value[1], value[2], value[3], value[4], value[5], value[6] %}
 
-    <div class="main_div flex">
+<div class="main_div flex reset">
 
-        <div class="left_div flex">
-        <img src="{{path_image}}" alt="{{name}}">
-        <h1>{{ name  }}</h1>
+    <div class="up_main">
+        <div class="left_div_up flex item">
+            <img src="{{path_image}}" alt="{{name}}">
+            <h1 class="reset">{{ name }}</h1>
+            <a href="{{ url }}" class="btn">Перейти к закладке</a>
         </div>
-        <div class="up_section">
-            <p>{{ date }}</p>
-            <p>{{ url }}</p>
-            <p>{{ status }}</p>
-        </div>
-        <div class="down_section">
-            <p>{{ desc }}</p>
+
+        <div class="right_div_up flex">
+            <div class="left_text_side">
+                <p class="parag">Название</p>
+                <p class="parag">Дата создания</p>
+                <p class="parag">Статус</p>
+            </div>
+            <div class="right_text_side">
+                <p class="parag">{{ name }}</p>
+                <p class="parag">{{ date }}</p>
+                <p class="parag">{{ status }}</p>
+            </div>
+            
+            
         </div>
     </div>
+
+    <div class="down_section">
+        <p>{{ desc }}</p>
+    </div>
+</div>
 
 {% endfor %}
 </body>
