@@ -51,6 +51,10 @@ class EditRecord(QtWidgets.QWidget):
         self.status_edit = QtWidgets.QLineEdit()
         self.status_edit.setPlaceholderText("Статус")
 
+        self.images_for_record_edit = QtWidgets.QTextEdit()
+        self.btn_select_images_edit = QtWidgets.QPushButton("Выбрать картинки")
+        self.btn_select_images_edit.clicked.connect(self.select_images)
+
         self.description_edit = QtWidgets.QTextEdit()
         self.description_edit.setPlaceholderText("Описание")
 
@@ -75,12 +79,21 @@ class EditRecord(QtWidgets.QWidget):
         self.main_vbox.addWidget(self.url_edit)
         self.main_vbox.addWidget(self.status_edit)
         self.main_vbox.addWidget(self.description_edit)
+        self.main_vbox.addWidget(self.images_for_record_edit)
+        self.main_vbox.addWidget(self.btn_select_images_edit)
         self.main_vbox.addWidget(self.btn_bd_insert)
         self.setLayout(self.main_vbox)
 
         self.get_info_record_for_edit()
 
         self.show()
+
+    def select_images(self):
+        main = QtWidgets.QFileDialog.getOpenFileNames(self, "Выберите базу данных",
+                                                      filter="Databases Files (*.jpg), test (*.png)",
+                                                      options=QtWidgets.QFileDialog.DontUseNativeDialog)
+
+        self.images_for_record_edit.setText(",".join(main[0]))
 
     def check_name_record(self):
         with sqlite3.connect(self.cur_bd_name) as conn:
@@ -120,7 +133,7 @@ class EditRecord(QtWidgets.QWidget):
                 str(self.name_record_edit.text()), str(self.wb_patch_record_edit.text()), str(self.date_edit.text()),
                 str(self.url_edit.text()),
                 str(self.status_edit.text()),
-                str(self.description_edit.toPlainText()), str(self.bookmark_for_edit.currentItem().text()))
+                str(self.description_edit.toPlainText()), str(self.bookmark_for_edit.currentItem().text()), self.images_for_record_edit.toPlainText())
             cur = conn.cursor()
             cur.execute("""
             UPDATE `{name}`
@@ -129,7 +142,8 @@ class EditRecord(QtWidgets.QWidget):
             `date` = ?,
             `url` = ?,
             `status` = ?,
-            `description` = ? 
+            `description` = ?,
+            `images` = ?
             WHERE name = ?
             """.format(name=self.cur_category_name), values)
             conn.commit()
@@ -145,6 +159,8 @@ class EditRecord(QtWidgets.QWidget):
         url = res[0][4]
         status = res[0][5]
         description = res[0][6]
+        images = res[0][7]
+        print(images)
 
         self.name_record_edit.setText(name)
         self.wb_patch_record_edit.setText(path_to_screen)
@@ -152,6 +168,7 @@ class EditRecord(QtWidgets.QWidget):
         self.url_edit.setText(url)
         self.status_edit.setText(status)
         self.description_edit.setText(description)
+        self.images_for_record_edit.setText(images)
 
 
 class EditorCategory(QtWidgets.QWidget):
