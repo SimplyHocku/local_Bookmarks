@@ -229,6 +229,10 @@ class AdderRecordToBD(QtWidgets.QWidget):
         self.status = QtWidgets.QLineEdit()
         self.status.setPlaceholderText("Статус")
 
+        self.images_for_record = QtWidgets.QTextEdit()
+        self.btn_select_images = QtWidgets.QPushButton("Выбрать картинки")
+        self.btn_select_images.clicked.connect(self.select_images)
+
         self.description = QtWidgets.QTextEdit()
         self.description.setPlaceholderText("Описание")
 
@@ -253,10 +257,20 @@ class AdderRecordToBD(QtWidgets.QWidget):
         self.main_vbox.addWidget(self.url)
         self.main_vbox.addWidget(self.status)
         self.main_vbox.addWidget(self.description)
+        self.main_vbox.addWidget(self.images_for_record)
+        self.main_vbox.addWidget(self.btn_select_images)
         self.main_vbox.addWidget(self.btn_bd_insert)
         self.setLayout(self.main_vbox)
 
         self.show()
+
+    def select_images(self):
+        main = QtWidgets.QFileDialog.getOpenFileNames(self, "Выберите базу данных",
+                                                      filter="Databases Files (*.jpg), test (*.png)",
+                                                      options=QtWidgets.QFileDialog.DontUseNativeDialog)
+
+        self.images_for_record.setText(",".join(main[0]))
+
 
     def select_file(self):
         file = QtWidgets.QFileDialog.getOpenFileName()
@@ -305,11 +319,11 @@ class AdderRecordToBD(QtWidgets.QWidget):
         with sqlite3.connect(path) as conn:
             values = (str(self.name.text()), str(self.wb_patch.text()), str(self.date.text()), str(self.url.text()),
                       str(self.status.text()),
-                      str(self.description.toPlainText()))
+                      str(self.description.toPlainText()), str(self.images_for_record.toPlainText()))
             cur = conn.cursor()
             cur.execute("""
-            INSERT INTO `{name}` (`name`, `screen_name`, `date`, `url`, `status`, `description`)
-            VALUES (?,?,?,?,?,?);
+            INSERT INTO `{name}` (`name`, `screen_name`, `date`, `url`, `status`, `description`, `images`)
+            VALUES (?,?,?,?,?,?,?);
             """.format(name=self.cur_category_name), values)
             conn.commit()
             self.restart_book()
@@ -343,7 +357,7 @@ class AdderCategoryToBD(QtWidgets.QWidget):
             cur.execute("""
             CREATE TABLE `{name}` 
             (id INTEGER PRIMARY KEY AUTOINCREMENT, name text, screen_name text,
-            date text, url text, status text, description text);
+            date text, url text, status text, description text, images text);
             """.format(name=name_category))
             conn.commit()
 

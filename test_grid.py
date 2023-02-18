@@ -61,8 +61,10 @@ class Test(QtWidgets.QMainWindow):
         # QtWidgets.Are
 
     def test(self):
-        self.test_wif.setGeometry(QtCore.QRect(100, 100, 500, 500))
-
+        main = QtWidgets.QFileDialog.getOpenFileNames(self, "Выберите базу данных",
+                                                     filter="Databases Files (*.jpg), test (*.png)",
+                                                     options=QtWidgets.QFileDialog.DontUseNativeDialog)
+        print(main)
 
 app = QtWidgets.QApplication(sys.argv)
 main = Test()

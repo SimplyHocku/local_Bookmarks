@@ -13,40 +13,56 @@
     </style>
 </head>
 <body class="test">
-{% for value in values %}
-{% set name, path_image, date, url, status, desc = value[1], value[2], value[3], value[4], value[5], value[6] %}
 
 <div class="main_div flex reset">
 
     <div class="up_main">
-        <div class="left_div_up flex item">
-            <img src="{{path_image}}" alt="{{name}}">
-            <h1 class="reset">{{ name }}</h1>
-            <a href="{{ url }}" class="btn">Перейти к закладке</a>
+        <div class="left_div_up item">
+            <img class="scale title_image" src="{{values['path_to_img_title']}}" alt="{{name}}">
+            <a href="{{ values['url_record'] }}" class="btn">Перейти к закладке</a>
         </div>
 
-        <div class="right_div_up flex">
+        <div class="right_div_up">
             <div class="left_text_side">
+                <p class="parag">Категория</p>
                 <p class="parag">Название</p>
                 <p class="parag">Дата создания</p>
                 <p class="parag">Статус</p>
             </div>
             <div class="right_text_side">
-                <p class="parag">{{ name }}</p>
-                <p class="parag">{{ date }}</p>
-                <p class="parag">{{ status }}</p>
+                <p class="parag">{{ values['category'] }}</p>
+                <p class="parag">{{ values['record_name'] }}</p>
+                <p class="parag">{{ values['date_create'] }}</p>
+                <p class="parag">{{ values['status_record'] }}</p>
             </div>
-            
-            
         </div>
+        
     </div>
 
+
     <div class="down_section">
-        <p>{{ desc }}</p>
+        <div class="down_content">
+            <p class="parag_down_content">{{ values['desc_record'] }}</p>
+        </div>
+    </div>
+        <h2 class="title_images">Изображения для этой закладки</h2>
+    <div class="content_images">
+        
+        <div class="content_image">
+            <img src="{{ other }}" class="image_source scale">
+        </div>
+        <div class="content_image">
+            <img src="{{ other }}" class="image_source scale">
+        </div>
+        <div class="content_image">
+            <img src="{{ other }}" class="image_source scale">
+        </div>
+
+
     </div>
 </div>
 
-{% endfor %}
+
 </body>
 </html>
 

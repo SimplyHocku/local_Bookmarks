@@ -206,18 +206,39 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.add_to_bookmarks(res)
 
+    def get_paths(self, dirty_path):
+        paths = dirty_path.split(",")
+        return paths
+
+    def clear_data_for_record(self, data):
+        data_dict = dict()
+        print(data)
+        data_dict["record_name"] = data[1]
+        data_dict["path_to_img_title"] = data[2]
+        data_dict["date_create"] = data[3]
+        data_dict["url_record"] = data[4]
+        data_dict["status_record"] = data[5]
+        data_dict["desc_record"] = data[6]
+        data_dict["category"] = self.name_category
+        data_dict["images_record"] = self.get_paths(data[7])
+
+        return data_dict
+
     def get_data(self, name):
         path = self.path_to_bd
         category = self.category_catalog.itemText(self.category_catalog.currentIndex())
 
         with sqlite3.connect(path) as conn:
+            data_for_record = dict()
             cur = conn.cursor()
 
             res = cur.execute("""
             SELECT * from `{}`
             WHERE name = ?
             """.format(category), (name,)).fetchall()
-            return res
+            data = self.clear_data_for_record(res[0])
+
+            return data
 
     def render_main_blog(self):
         self.web_view.load((QtCore.QUrl("about:blank")))
@@ -226,7 +247,10 @@ class MainWindow(QtWidgets.QMainWindow):
         file_loader = FileSystemLoader('')
         env = Environment(loader=file_loader)
         template = env.get_template('templates/index.html')
-        output = template.render(values=values)
+        test_path = "C:\GLOBAL_DIR\local_Bookmarks\images\g.png"
+        other = {"category_name": self.name_category}
+        print(test_path)
+        output = template.render(other=test_path, values=values)
         with open("templates/output.html", "wb") as file:
             file.write(output.encode("utf-8"))
         path = pathlib.Path("templates/output.html").absolute()
@@ -236,6 +260,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
 if __name__ == "__main__":
+    create_bd()
     app = QtWidgets.QApplication(sys.argv)
     window = MainWindow()
     window.showMaximized()
