@@ -18,7 +18,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.center_widget = QtWidgets.QWidget()
         self.setCentralWidget(self.center_widget)
         self.web_view = QWebEngineView(parent=self)
-        # self.web_view.settings().setDefaultTextEncoding("windows-1251")
+        self.test = QtWidgets.QPushButton(parent=self)
+        self.test.move(5, 20)
+        self.test.clicked.connect(self.test_click)
         self.setCentralWidget(self.web_view)
 
         self.path_to_bd = None
@@ -78,6 +80,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.category_catalog.currentIndexChanged.connect(self.get_info_cur_table)
         self.category_catalog.customContextMenuRequested.connect(self.show_menu)
+
+    def test_click(self):
+        self.web_view.setUrl(QtCore.QUrl("https://vk.com"))
 
     def down_up_list(self):
         if self.bookmarks_catalog.property("position") == "up":
@@ -212,7 +217,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def clear_data_for_record(self, data):
         data_dict = dict()
-        print(data)
         data_dict["record_name"] = data[1]
         data_dict["path_to_img_title"] = data[2]
         data_dict["date_create"] = data[3]
@@ -242,21 +246,23 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def render_main_blog(self):
         self.web_view.load((QtCore.QUrl("about:blank")))
+
         values = self.get_data(self.bookmarks_catalog.currentItem().text())
-        print(values)
+        if not values["images_record"][0]:
+            values["images_record"] = [pathlib.Path("images/g.png").absolute() for cycle in range(3)]
+        # print(bool(values[""]))
+        if not values["path_to_img_title"]:
+            values["path_to_img_title"] = pathlib.Path("images/page_not.png").absolute()
         file_loader = FileSystemLoader('')
         env = Environment(loader=file_loader)
         template = env.get_template('templates/index.html')
-        test_path = "C:\GLOBAL_DIR\local_Bookmarks\images\g.png"
-        other = {"category_name": self.name_category}
-        print(test_path)
-        output = template.render(other=test_path, values=values)
+        output = template.render(values=values)
+
         with open("templates/output.html", "wb") as file:
             file.write(output.encode("utf-8"))
+
         path = pathlib.Path("templates/output.html").absolute()
         self.web_view.setUrl(QtCore.QUrl().fromLocalFile(str(path)))
-        # self.web_view.
-        # self.web_view.load((QtCore.QUrl().fromLocalFile(str(path))))
 
 
 if __name__ == "__main__":

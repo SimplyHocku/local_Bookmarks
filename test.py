@@ -1,4 +1,47 @@
-a = (['C:/GLOBAL_DIR/local_Bookmarks/images/refresh_icon.png', 'C:/GLOBAL_DIR/local_Bookmarks/images/g.png', 'C:/GLOBAL_DIR/local_Bookmarks/images/add_record.png', 'C:/GLOBAL_DIR/local_Bookmarks/images/add_category.png'], 'Databases Files (*.jpg), test (*.png)')
+import sys
+from PyQt5 import QtWidgets, QtCore, QtGui
 
-msg = ",".join(a[0])
-print(msg)
+
+class MainWindow(QtWidgets.QMainWindow):
+    count = 0
+
+    def __init__(self, parent=None):
+        super(MainWindow, self).__init__(parent)
+        self.mdi = QtWidgets.QMdiArea()
+        self.setCentralWidget(self.mdi)
+        bar = self.menuBar()
+
+        file = bar.addMenu("File")
+        file.addAction("New")
+        file.addAction("cascade")
+        file.addAction("Tiled")
+        file.triggered[QtWidgets.QAction].connect(self.windowaction)
+        self.setWindowTitle("MDI demo")
+
+    def windowaction(self, q):
+        print("triggered")
+
+        if q.text() == "New":
+            MainWindow.count = MainWindow.count + 1
+            sub = QtWidgets.QMdiSubWindow()
+            sub.setWidget(QtWidgets.QTextEdit())
+            sub.setWindowTitle("subwindow" + str(MainWindow.count))
+            self.mdi.addSubWindow(sub)
+            sub.show()
+
+        if q.text() == "cascade":
+            self.mdi.cascadeSubWindows()
+
+        if q.text() == "Tiled":
+            self.mdi.tileSubWindows()
+
+
+def main():
+    app = QtWidgets.QApplication(sys.argv)
+    ex = MainWindow()
+    ex.show()
+    sys.exit(app.exec_())
+
+
+if __name__ == '__main__':
+    main()

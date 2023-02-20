@@ -90,7 +90,7 @@ class EditRecord(QtWidgets.QWidget):
 
     def select_images(self):
         main = QtWidgets.QFileDialog.getOpenFileNames(self, "Выберите базу данных",
-                                                      filter="Databases Files (*.jpg), test (*.png)",
+                                                      # filter="Databases Files (*.jpeg), test (*.png)" "All (*.)",
                                                       options=QtWidgets.QFileDialog.DontUseNativeDialog)
 
         self.images_for_record_edit.setText(",".join(main[0]))
@@ -127,13 +127,12 @@ class EditRecord(QtWidgets.QWidget):
     def edit_record_in_db(self):
         # path = pathlib.Path('databases').joinpath(pathlib.Path(self.cur_bd_name).name).absolute()
         with sqlite3.connect(self.cur_bd_name) as conn:
-            print(str(self.name_record_edit.text()))
-            print(self.bookmark_for_edit.currentItem().text())
             values = (
                 str(self.name_record_edit.text()), str(self.wb_patch_record_edit.text()), str(self.date_edit.text()),
                 str(self.url_edit.text()),
                 str(self.status_edit.text()),
-                str(self.description_edit.toPlainText()), str(self.bookmark_for_edit.currentItem().text()), self.images_for_record_edit.toPlainText())
+                str(self.description_edit.toPlainText()), str(self.images_for_record_edit.toPlainText()),
+                str(self.bookmark_for_edit.currentItem().text()))
             cur = conn.cursor()
             cur.execute("""
             UPDATE `{name}`
@@ -148,6 +147,7 @@ class EditRecord(QtWidgets.QWidget):
             """.format(name=self.cur_category_name), values)
             conn.commit()
             self.restart_book()
+            self.close()
 
     def get_info_record_for_edit(self):
         table_name = self.cur_category_name
@@ -160,7 +160,6 @@ class EditRecord(QtWidgets.QWidget):
         status = res[0][5]
         description = res[0][6]
         images = res[0][7]
-        print(images)
 
         self.name_record_edit.setText(name)
         self.wb_patch_record_edit.setText(path_to_screen)
@@ -283,11 +282,10 @@ class AdderRecordToBD(QtWidgets.QWidget):
 
     def select_images(self):
         main = QtWidgets.QFileDialog.getOpenFileNames(self, "Выберите базу данных",
-                                                      filter="Databases Files (*.jpg), test (*.png)",
+                                                      filter="Databases Files (*.jpeg), test (*.png)",
                                                       options=QtWidgets.QFileDialog.DontUseNativeDialog)
 
         self.images_for_record.setText(",".join(main[0]))
-
 
     def select_file(self):
         file = QtWidgets.QFileDialog.getOpenFileName()

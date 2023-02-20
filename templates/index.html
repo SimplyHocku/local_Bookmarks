@@ -36,7 +36,7 @@
                 <p class="parag">{{ values['status_record'] }}</p>
             </div>
         </div>
-        
+
     </div>
 
 
@@ -45,20 +45,13 @@
             <p class="parag_down_content">{{ values['desc_record'] }}</p>
         </div>
     </div>
-        <h2 class="title_images">Изображения для этой закладки</h2>
+    <h2 class="title_images">Изображения для этой закладки</h2>
     <div class="content_images">
-        
+        {% for images in values["images_record"] %}
         <div class="content_image">
-            <img src="{{ other }}" class="image_source scale">
+            <img src="{{ images }}" class="image_source scale">
         </div>
-        <div class="content_image">
-            <img src="{{ other }}" class="image_source scale">
-        </div>
-        <div class="content_image">
-            <img src="{{ other }}" class="image_source scale">
-        </div>
-
-
+        {% endfor %}
     </div>
 </div>
 
