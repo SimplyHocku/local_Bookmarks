@@ -1,7 +1,77 @@
 import sqlite3
 import pathlib
-from PyQt5 import QtWidgets, QtCore, QtGui
+from PyQt5 import QtWidgets, QtCore, QtGui, QtWebEngineWidgets
+from jinja2 import *
 from other_functions import *
+
+
+class WebWin(QtWebEngineWidgets.QWebEngineView):
+    def __init__(self, path, category, book):
+        super().__init__()
+        # self.web = QtWebEngineWidgets.QWebEngineView(parent=self)
+        # self.setCentralWidget(self.web)
+        self.path_to_db = path
+        self.category = category
+        self.book_catalog = book
+        self.cur_render()
+        # self.setStyleSheet("backgroud-color:black;")
+        # self.web.showMaximized()
+
+        self.showMaximized()
+
+    def get_paths(self, dirty_path):
+        paths = dirty_path.split(",")
+        return paths
+
+    def clear_data_for_record(self, data):
+        data_dict = dict()
+        data_dict["record_name"] = data[1]
+        data_dict["path_to_img_title"] = data[2]
+        data_dict["date_create"] = data[3]
+        data_dict["url_record"] = data[4]
+        data_dict["status_record"] = data[5]
+        data_dict["desc_record"] = data[6]
+        data_dict["category"] = self.category
+        data_dict["images_record"] = self.get_paths(data[7])
+
+        return data_dict
+
+    def get_dataa(self, name):
+
+        path = self.path_to_db
+        category = self.category
+
+        with sqlite3.connect(path) as conn:
+            data_for_record = dict()
+            cur = conn.cursor()
+
+            res = cur.execute("""
+                    SELECT * from `{}`
+                    WHERE name = ?
+                    """.format(category), (name,)).fetchall()
+            data = self.clear_data_for_record(res[0])
+
+            return data
+
+    def cur_render(self):
+        self.load((QtCore.QUrl("about:blank")))
+
+        values = self.get_dataa(self.book_catalog.currentItem().text())
+        if not values["images_record"][0]:
+            values["images_record"] = [pathlib.Path("images/g.png").absolute() for cycle in range(3)]
+        # print(bool(values[""]))
+        if not values["path_to_img_title"]:
+            values["path_to_img_title"] = pathlib.Path("images/page_not.png").absolute()
+        file_loader = FileSystemLoader('')
+        env = Environment(loader=file_loader)
+        template = env.get_template('templates/index.html')
+        output = template.render(values=values)
+
+        with open("templates/output.html", "wb") as file:
+            file.write(output.encode("utf-8"))
+
+        path = pathlib.Path("templates/output.html").absolute()
+        self.setUrl(QtCore.QUrl().fromLocalFile(str(path)))
 
 
 class EditRecord(QtWidgets.QWidget):
