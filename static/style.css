@@ -10,7 +10,9 @@ display: flex;
     margin-top: 25px;
     padding: 25px;
 
-    background-color: white;
+    background-color: rgb(255, 255, 255);
+    border-radius: 25px;
+    opacity: 0.9;
 }
 
 .btn {
@@ -84,7 +86,8 @@ img {
 }
 
 body {
-background-color: #e9ebee;
+ background: -webkit-linear-gradient(90deg, #7ba79a,#6fa572);/* Chrome 10-25, Safari 5.1-6 */
+ background: linear-gradient(90deg, #7ba79a,#6fa572);/* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
 font-family: "Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol";
 font-size: 1rem;
 line-height: 1.5;
