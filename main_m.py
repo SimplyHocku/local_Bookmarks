@@ -17,7 +17,7 @@ class MainWindow(QtWidgets.QMainWindow):
         super().__init__()
         self.center_widget = QtWidgets.QWidget()
         self.center_widget.setStyleSheet("""
-                                            background-image: url("images/1.png");
+                                            background-image: url("static/work_img/main.png");
                                             """)
 
         self.setCentralWidget(self.center_widget)

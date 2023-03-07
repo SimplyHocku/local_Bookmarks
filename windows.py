@@ -1,6 +1,6 @@
 import sqlite3
 import pathlib
-from PyQt5 import QtWidgets, QtCore, QtGui, QtWebEngineWidgets
+from PyQt5 import QtWidgets, QtCore, QtWebEngineWidgets
 from jinja2 import *
 from other_functions import *
 
@@ -8,20 +8,13 @@ from other_functions import *
 class WebWin(QtWebEngineWidgets.QWebEngineView):
     def __init__(self, path, category, book):
         super().__init__()
-        # self.web = QtWebEngineWidgets.QWebEngineView(parent=self)
-        # self.setCentralWidget(self.web)
+
         self.path_to_db = path
         self.category = category
         self.book_catalog = book
         self.cur_render()
-        # self.setStyleSheet("backgroud-color:black;")
-        # self.web.showMaximized()
 
         self.showMaximized()
-
-    def get_paths(self, dirty_path):
-        paths = dirty_path.split(",")
-        return paths
 
     def clear_data_for_record(self, data):
         data_dict = dict()
@@ -32,7 +25,7 @@ class WebWin(QtWebEngineWidgets.QWebEngineView):
         data_dict["status_record"] = data[5]
         data_dict["desc_record"] = data[6]
         data_dict["category"] = self.category
-        data_dict["images_record"] = self.get_paths(data[7])
+        data_dict["images_record"] = get_paths(data[7])
 
         return data_dict
 
@@ -42,7 +35,6 @@ class WebWin(QtWebEngineWidgets.QWebEngineView):
         category = self.category
 
         with sqlite3.connect(path) as conn:
-            data_for_record = dict()
             cur = conn.cursor()
 
             res = cur.execute("""
@@ -58,10 +50,9 @@ class WebWin(QtWebEngineWidgets.QWebEngineView):
 
         values = self.get_dataa(self.book_catalog.currentItem().text())
         if not values["images_record"][0]:
-            values["images_record"] = [pathlib.Path("images/g.png").absolute() for cycle in range(3)]
-        # print(bool(values[""]))
+            values["images_record"] = [pathlib.Path("static/work_img/g.png").absolute() for _ in range(3)]
         if not values["path_to_img_title"]:
-            values["path_to_img_title"] = pathlib.Path("images/page_not.png").absolute()
+            values["path_to_img_title"] = pathlib.Path("static/work_img/page_not.png").absolute()
         file_loader = FileSystemLoader('')
         env = Environment(loader=file_loader)
         template = env.get_template('templates/index.html')
@@ -195,7 +186,6 @@ class EditRecord(QtWidgets.QWidget):
         self.date_edit.setText(selected_date)
 
     def edit_record_in_db(self):
-        # path = pathlib.Path('databases').joinpath(pathlib.Path(self.cur_bd_name).name).absolute()
         with sqlite3.connect(self.cur_bd_name) as conn:
             values = (
                 str(self.name_record_edit.text()), str(self.wb_patch_record_edit.text()), str(self.date_edit.text()),

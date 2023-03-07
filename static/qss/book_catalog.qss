@@ -1,0 +1,12 @@
+QListWidget {
+	background-color: rgba(7, 96, 93, 0.1); 
+	color: white; 
+	border-radius: 25px; 
+	text-align: center; font-size: 23px;}
+    QListWidget::item {
+                      }
+        QListWidget::item:hover {
+        color: rgba(255,255,255, 0.3);
+        transition: 1s;
+        
+        }
