@@ -9,7 +9,7 @@ def convert_date(values):
     return f"{day}.{month}.{year}"
 
 
-def get_paths(self, dirty_path):
+def get_paths(dirty_path):
     paths = dirty_path.split(",")
     return paths
 

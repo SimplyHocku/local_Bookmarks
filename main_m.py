@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import sys
-from pathlib import Path
 import sqlite3
 from jinja2 import *
+from pathlib import Path
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtCore import Qt
 from windows import AdderCategoryToBD, AdderRecordToBD, EditorCategory, EditRecord, WebWin
@@ -29,13 +29,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.search_book.textChanged.connect(self.edit_book_cat)
         self.search_book.move(10, 50)
         self.search_book.setHidden(True)
-        self.search_book.setStyleSheet("""
-                                        border-radius: 25px;
-                                        background-color: rgba(7, 96, 93, 0.1);
-                                        color: white;
-                                        text-align: center; font-size: 23px;
-                                       
-        """)
+        self.search_book.setObjectName("search_book")
+        with open(Path("static/qss/search.book.qss")) as file:
+            self.search_book.setStyleSheet(file.read())
         self.animation_for_search = QtCore.QPropertyAnimation(self.search_book, b"geometry")
 
         self.webs = list()
@@ -68,19 +64,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.add_record_action.triggered.connect(self.add_record_to_bd)
 
         self.bookmarks_catalog = QtWidgets.QListWidget(parent=self)
-        self.bookmarks_catalog.setStyleSheet("""
-        QListWidget {background-color: rgba(7, 96, 93, 0.1); color: white; border-radius: 25px; text-align: center; font-size: 23px;}
-    QListWidget::item {
-                      }
-        QListWidget::item:hover {
-        color: rgba(255,255,255, 0.3);
-        transition: 1s;
-        
-        }
-                      """)
         self.animation_for_book_cat = QtCore.QPropertyAnimation(self.bookmarks_catalog, b"geometry")
         self.bookmarks_catalog.setProperty("position", "up")
         self.bookmarks_catalog.setObjectName("bookmarks_catalog")
+        with open(Path("static/qss/book_catalog.qss")) as file:
+            self.bookmarks_catalog.setStyleSheet(file.read())
         self.bookmarks_catalog.setGeometry(QtCore.QRect(1, 5, 300, 0))
         self.bookmarks_catalog.setContextMenuPolicy(Qt.CustomContextMenu)
 
@@ -245,11 +233,7 @@ class MainWindow(QtWidgets.QMainWindow):
         name = self.category_catalog.itemText(self.category_catalog.currentIndex())
         self.name_category = name
         res = self.get_info_for_book()
-        # self.create_web(res)
-
         self.add_to_bookmarks(res)
-
-    
 
     def clear_data_for_record(self, data):
         data_dict = dict()
