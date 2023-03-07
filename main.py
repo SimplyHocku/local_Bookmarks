@@ -7,6 +7,7 @@ from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtCore import Qt
 from windows import AdderCategoryToBD, AdderRecordToBD, EditorCategory, EditRecord, WebWin
 from other_functions import *
+from typing import List, Dict
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -217,7 +218,7 @@ class MainWindow(QtWidgets.QMainWindow):
         while catalog_items:
             self.bookmarks_catalog.addItem(catalog_items.pop())
 
-    def get_info_for_book(self):
+    def get_info_for_book(self) -> List:
         name = self.category_catalog.itemText(self.category_catalog.currentIndex())
         path = Path(self.path_to_bd)
         if path.exists():
@@ -235,7 +236,7 @@ class MainWindow(QtWidgets.QMainWindow):
         res = self.get_info_for_book()
         self.add_to_bookmarks(res)
 
-    def clear_data_for_record(self, data):
+    def clear_data_for_record(self, data) -> Dict:
         data_dict = dict()
         data_dict["record_name"] = data[1]
         data_dict["path_to_img_title"] = data[2]
@@ -248,7 +249,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         return data_dict
 
-    def get_data(self, name):
+    def get_data(self, name) -> Dict:
         category = self.category_catalog.itemText(self.category_catalog.currentIndex())
         res = self.gcursor().execute("""
         SELECT * from `{}`

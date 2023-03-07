@@ -1,5 +1,8 @@
 import pathlib
 import sqlite3
+import logging
+
+logger = logging.getLogger("logger")
 
 
 def convert_date(values):
