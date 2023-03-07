@@ -3,7 +3,7 @@ import sys
 import sqlite3
 from jinja2 import *
 from pathlib import Path
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtCore import Qt
 from windows import AdderCategoryToBD, AdderRecordToBD, EditorCategory, EditRecord, WebWin
 from other_functions import *
@@ -267,5 +267,7 @@ if __name__ == "__main__":
     create_bd()
     app = QtWidgets.QApplication(sys.argv)
     window = MainWindow()
+    window.setWindowTitle("Bookmarks")
+    window.setWindowIcon(QtGui.QIcon("static/work_img/icon.png"))
     window.showMaximized()
     sys.exit(app.exec_())
