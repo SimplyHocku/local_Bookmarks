@@ -31,13 +31,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.search_book.move(10, 50)
         self.search_book.setHidden(True)
         self.search_book.setObjectName("search_book")
-        with open(Path("static/qss/search.book.qss")) as file:
+        with open(Path("static/qss/search_book.qss")) as file:
             self.search_book.setStyleSheet(file.read())
         self.animation_for_search = QtCore.QPropertyAnimation(self.search_book, b"geometry")
 
         self.webs = list()
 
         self.menu = self.menuBar()
+        self.menu.setObjectName("menu")
+        with open(Path("static/qss/menu.qss")) as file:
+            self.menu.setStyleSheet(file.read())
+
 
         self.menu_file_edit = self.menu.addMenu('&Файл')
         self.widget_menu = self.menu.addMenu("Виджеты")
