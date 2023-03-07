@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 import sys
-import pathlib
+from pathlib import Path
 import sqlite3
 from jinja2 import *
-from PyQt5 import QtWidgets, QtCore, QtGui
-from PyQt5.QtGui import QIcon, QTransform, QPixmap
-from PyQt5.QtWebEngineWidgets import QWebEngineView
+from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtCore import Qt
 from windows import AdderCategoryToBD, AdderRecordToBD, EditorCategory, EditRecord, WebWin
 from other_functions import *
@@ -13,6 +11,7 @@ from other_functions import *
 
 class MainWindow(QtWidgets.QMainWindow):
     sett = ""
+    PATH_TO_DB = None
 
     def __init__(self):
         super().__init__()
@@ -22,7 +21,6 @@ class MainWindow(QtWidgets.QMainWindow):
                                             """)
 
         self.setCentralWidget(self.center_widget)
-
 
         self.path_to_bd = None
         self.name_category = None
@@ -104,6 +102,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.category_catalog.currentIndexChanged.connect(self.get_info_cur_table)
         self.category_catalog.customContextMenuRequested.connect(self.show_menu)
 
+    def gcursor(self):
+        with sqlite3.connect(self.path_to_bd) as conn:
+            cur = conn.cursor()
+            return cur
+
     def show_search(self):
         if (self.path_to_bd or self.name_category) is None:
             return
@@ -116,20 +119,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def edit_book_cat(self):
         name_searched_book = self.search_book.text()
-        with sqlite3.connect(self.path_to_bd) as conn:
-            cur = conn.cursor()
-            res = cur.execute("""
-            SELECT `name`
-            FROM {category_name}
-            WHERE name LIKE ?;
-            """.format(category_name=self.name_category), (f"{name_searched_book}%",)).fetchall()
-            self.add_to_bookmarks(res)
-
-    def test_click(self):
-        self.web_view.setUrl(QtCore.QUrl("https://vk.com"))
-
-    def create_web(self, values):
-        pass
+        res = self.gcursor().execute("""
+        SELECT `name`
+        FROM {category_name}
+        WHERE name LIKE ?;
+        """.format(category_name=self.name_category), (f"{name_searched_book}%",)).fetchall()
+        self.add_to_bookmarks(res)
 
     def down_up_list(self):
         if self.bookmarks_catalog.property("position") == "up":
@@ -155,36 +150,32 @@ class MainWindow(QtWidgets.QMainWindow):
                                         self.add_to_category)
 
     def delete_cat(self):
-        with sqlite3.connect(self.path_to_bd) as conn:
-            cur = conn.cursor()
-            cur.execute("""
-            DROP TABLE `{table_name}`
-            """.format(table_name=self.category_catalog.itemText(self.category_catalog.currentIndex())))
-            conn.commit()
-            self.add_to_category()
+        self.gcursor().execute("""
+        DROP TABLE `{table_name}`
+        """.format(table_name=self.category_catalog.itemText(self.category_catalog.currentIndex())))
+        self.add_to_category()
 
     def edit_record(self):
         self.record_editor = EditRecord(self.path_to_bd, self.name_category, self.bookmarks_catalog,
                                         self.get_info_cur_table)
 
     def delete_record(self):
-        with sqlite3.connect(self.path_to_bd) as conn:
-            cur = conn.cursor()
-            category_name = self.category_catalog.itemText(self.category_catalog.currentIndex())
-            cur_record_name = self.bookmarks_catalog.currentItem().text()
-            cur.execute("""
+
+        category_name = self.category_catalog.itemText(self.category_catalog.currentIndex())
+        cur_record_name = self.bookmarks_catalog.currentItem().text()
+        self.gcursor().execute("""
             DELETE FROM `{category_name}`
             WHERE name = '{name_record}'
             """.format(category_name=category_name, name_record=cur_record_name))
-            conn.commit()
-            self.bookmarks_catalog.clear()
-            self.add_to_bookmarks(self.get_info_for_book())
+        self.bookmarks_catalog.clear()
+        self.add_to_bookmarks(self.get_info_for_book())
 
     def choose_db(self):
         main = QtWidgets.QFileDialog.getOpenFileName(self, "Выберите базу данных",
                                                      filter="Databases Files (*.db)",
                                                      options=QtWidgets.QFileDialog.DontUseNativeDialog)[0]
         self.path_to_bd = main
+        self.PATH_TO_DB = main
         self.category_catalog.setEnabled(True)
         self.add_to_category()
 
@@ -209,49 +200,43 @@ class MainWindow(QtWidgets.QMainWindow):
         action = menu.exec_(self.sender().mapToGlobal(pos))
 
     def add_category_to_bd(self):
-        self.bd_category_win = AdderCategoryToBD(pathlib.Path(self.path_to_bd).name, self.add_to_category)
+        self.bd_category_win = AdderCategoryToBD(Path(self.path_to_bd).name, self.add_to_category)
 
     def add_record_to_bd(self):
-        self.bd_win = AdderRecordToBD(pathlib.Path(self.path_to_bd),
+        self.bd_win = AdderRecordToBD(Path(self.path_to_bd),
                                       self.category_catalog.itemText(self.category_catalog.currentIndex()),
                                       self.get_info_cur_table)
 
     def add_to_category(self):
         self.bookmarks_catalog.clear()
         self.category_catalog.clear()
-        path = pathlib.Path(self.path_to_bd)
+        path = Path(self.path_to_bd)
         if path.exists():
-            with sqlite3.connect(path) as conn:
-                cur = conn.cursor()
-                res = cur.execute("""
+            res = self.gcursor().execute("""
                         SELECT name FROM sqlite_schema 
                         WHERE type ='table' AND name NOT LIKE 'sqlite_%';
                         """).fetchall()
 
-                res = [name[0] for name in res]
-                self.category_catalog.addItems(res)
-                self.add_category_action.setEnabled(True)
+            res = [name[0] for name in res]
+            self.category_catalog.addItems(res)
+            self.add_category_action.setEnabled(True)
 
     def add_to_bookmarks(self, values):
-        print(values)
         self.bookmarks_catalog.clear()
         catalog_items = [QtWidgets.QListWidgetItem(item[0]) for item in values]
         for item in catalog_items:
             item.setTextAlignment(Qt.AlignCenter)
-        print(catalog_items)
         while catalog_items:
             self.bookmarks_catalog.addItem(catalog_items.pop())
 
     def get_info_for_book(self):
         name = self.category_catalog.itemText(self.category_catalog.currentIndex())
-        path = pathlib.Path(self.path_to_bd)
+        path = Path(self.path_to_bd)
         if path.exists():
-            with sqlite3.connect(path) as conn:
-                cur = conn.cursor()
-                res = cur.execute("""
+            res = self.gcursor().execute("""
                         SELECT name from `{}`
                         """.format(name)).fetchall()
-                return res
+            return res
 
     def get_info_cur_table(self):
         if not self.category_catalog.itemText(self.category_catalog.currentIndex()):
@@ -260,14 +245,11 @@ class MainWindow(QtWidgets.QMainWindow):
         name = self.category_catalog.itemText(self.category_catalog.currentIndex())
         self.name_category = name
         res = self.get_info_for_book()
-        print(res)
-        self.create_web(res)
+        # self.create_web(res)
 
         self.add_to_bookmarks(res)
 
-    def get_paths(self, dirty_path):
-        paths = dirty_path.split(",")
-        return paths
+    
 
     def clear_data_for_record(self, data):
         data_dict = dict()
@@ -278,25 +260,19 @@ class MainWindow(QtWidgets.QMainWindow):
         data_dict["status_record"] = data[5]
         data_dict["desc_record"] = data[6]
         data_dict["category"] = self.name_category
-        data_dict["images_record"] = self.get_paths(data[7])
+        data_dict["images_record"] = get_paths(data[7])
 
         return data_dict
 
     def get_data(self, name):
-        path = self.path_to_bd
         category = self.category_catalog.itemText(self.category_catalog.currentIndex())
+        res = self.gcursor().execute("""
+        SELECT * from `{}`
+        WHERE name = ?
+        """.format(category), (name,)).fetchall()
+        data = self.clear_data_for_record(res[0])
 
-        with sqlite3.connect(path) as conn:
-            data_for_record = dict()
-            cur = conn.cursor()
-
-            res = cur.execute("""
-            SELECT * from `{}`
-            WHERE name = ?
-            """.format(category), (name,)).fetchall()
-            data = self.clear_data_for_record(res[0])
-
-            return data
+        return data
 
     def render_main_blog(self):
         self.webs.append(WebWin(self.path_to_bd, self.name_category, self.bookmarks_catalog))

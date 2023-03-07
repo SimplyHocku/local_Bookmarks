@@ -9,6 +9,11 @@ def convert_date(values):
     return f"{day}.{month}.{year}"
 
 
+def get_paths(self, dirty_path):
+    paths = dirty_path.split(",")
+    return paths
+
+
 def get_info_from_db_for_edit(cur_bd, table_name, record_name):
     with sqlite3.connect(cur_bd) as conn:
         cur = conn.cursor()
