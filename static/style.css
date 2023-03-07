@@ -150,10 +150,17 @@ line-height: 1.5;
 .content_images {
     margin-top: 40px;
     display: flex;
-    flex-flow: s;
+    flex-wrap: wrap;
+    /* flex-flow: s; */
     width: 1310px;
     justify-content: space-between;
 }
+
+.content_image {
+    margin-bottom: 25px;
+}
+
+
 
 .image_source {
     width: 400px;

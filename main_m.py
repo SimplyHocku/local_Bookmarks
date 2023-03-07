@@ -20,16 +20,25 @@ class MainWindow(QtWidgets.QMainWindow):
         self.center_widget.setStyleSheet("""
                                             background-image: url("images/1.png");
                                             """)
-        # self.setStyleSheet("background-color: black;")
-        print(self.size())
-        self.setCentralWidget(self.center_widget)
-        # self.center_widget.resize(1800, 500)
-        # self.web_view = QWebEngineView(parent=self)
 
-        # self.setCentralWidget(self.web_view)
+        self.setCentralWidget(self.center_widget)
+
 
         self.path_to_bd = None
         self.name_category = None
+
+        self.search_book = QtWidgets.QLineEdit(parent=self)
+        self.search_book.textChanged.connect(self.edit_book_cat)
+        self.search_book.move(10, 50)
+        self.search_book.setHidden(True)
+        self.search_book.setStyleSheet("""
+                                        border-radius: 25px;
+                                        background-color: rgba(7, 96, 93, 0.1);
+                                        color: white;
+                                        text-align: center; font-size: 23px;
+                                       
+        """)
+        self.animation_for_search = QtCore.QPropertyAnimation(self.search_book, b"geometry")
 
         self.webs = list()
 
@@ -48,6 +57,10 @@ class MainWindow(QtWidgets.QMainWindow):
         tool_bar_anim_btn.setShortcut("Ctrl+R")
         tool_bar_anim_btn.triggered.connect(self.down_up_list)
 
+        search_action_str = self.widget_menu.addAction("Поиск по вкладкам")
+        search_action_str.setShortcut("Ctrl+F")
+        search_action_str.triggered.connect(self.show_search)
+
         if self.path_to_bd is None:
             self.add_category_action.setDisabled(True)
         self.add_category_action.triggered.connect(self.add_category_to_bd)
@@ -57,11 +70,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.add_record_action.triggered.connect(self.add_record_to_bd)
 
         self.bookmarks_catalog = QtWidgets.QListWidget(parent=self)
-        # self.bookmarks_catalog.setItemAlignment(Qt.AlignCenter)
-        # self.bookmarks_catalog.setWordWrap(True)
-        # self.bookmarks_catalog.setTextAlignment(Qt.AlignCenter)
-        # self.bookmarks_catalog.setWindowOpacity(0.5)
-        # self.bookmarks_catalog.setStyleSheet("background-color: black; color: white;")
         self.bookmarks_catalog.setStyleSheet("""
         QListWidget {background-color: rgba(7, 96, 93, 0.1); color: white; border-radius: 25px; text-align: center; font-size: 23px;}
     QListWidget::item {
@@ -82,7 +90,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.bookmarks_catalog.itemDoubleClicked.connect(self.render_main_blog)
 
         self.category_catalog = QtWidgets.QComboBox(parent=self)
-        # self.category_catalog.setStyleSheet("backround-color: white;")
         if self.path_to_bd is None:
             self.category_catalog.setDisabled(True)
 
@@ -96,6 +103,27 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.category_catalog.currentIndexChanged.connect(self.get_info_cur_table)
         self.category_catalog.customContextMenuRequested.connect(self.show_menu)
+
+    def show_search(self):
+        if (self.path_to_bd or self.name_category) is None:
+            return
+        if self.bookmarks_catalog.size() == QtCore.QSize(300, 300):
+            self.search_book.setHidden(False)
+            self.animation_for_search.setDuration(500)
+            self.animation_for_search.setStartValue(QtCore.QRect(65, 325, 280, 0))
+            self.animation_for_search.setEndValue(QtCore.QRect(65, 325, 280, 40))
+            self.animation_for_search.start()
+
+    def edit_book_cat(self):
+        name_searched_book = self.search_book.text()
+        with sqlite3.connect(self.path_to_bd) as conn:
+            cur = conn.cursor()
+            res = cur.execute("""
+            SELECT `name`
+            FROM {category_name}
+            WHERE name LIKE ?;
+            """.format(category_name=self.name_category), (f"{name_searched_book}%",)).fetchall()
+            self.add_to_bookmarks(res)
 
     def test_click(self):
         self.web_view.setUrl(QtCore.QUrl("https://vk.com"))
@@ -116,7 +144,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.animation_for_book_cat.setEndValue(QtCore.QRect(55, 20, 300, 0))
             self.animation_for_book_cat.start()
             self.bookmarks_catalog.setProperty("position", "up")
-            # self.bookmarks_catalog.hide()
+            self.search_book.setHidden(True)
 
     def clear_bookmarks(self):
         self.bookmarks_catalog.clearSelection()
