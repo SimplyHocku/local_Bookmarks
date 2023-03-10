@@ -66,7 +66,6 @@ class MainWindow(QtWidgets.QMainWindow):
         }
     """)
 
-
         self.menu_file_edit = self.menu.addMenu('&Файл')
         self.widget_menu = self.menu.addMenu("Виджеты")
         action_choose_db = self.menu_file_edit.addAction("Выбрать базу данных")
@@ -105,6 +104,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.bookmarks_catalog.itemDoubleClicked.connect(self.render_main_blog)
 
         self.category_catalog = QtWidgets.QComboBox(parent=self)
+        self.category_catalog.setObjectName("category_catalog")
         if self.path_to_bd is None:
             self.category_catalog.setDisabled(True)
 
@@ -179,10 +179,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         category_name = self.category_catalog.itemText(self.category_catalog.currentIndex())
         cur_record_name = self.bookmarks_catalog.currentItem().text()
-        self.gcursor().execute("""
-            DELETE FROM `{category_name}`
-            WHERE name = '{name_record}'
-            """.format(category_name=category_name, name_record=cur_record_name))
+        cmd = """DELETE FROM `{category_name}` WHERE name = '{name_record}';
+        """.format(category_name=category_name, name_record=cur_record_name)
+        self.gcursor().executescript(cmd)
         self.bookmarks_catalog.clear()
         self.add_to_bookmarks(self.get_info_for_book())
 
@@ -216,7 +215,7 @@ class MainWindow(QtWidgets.QMainWindow):
         action = menu.exec_(self.sender().mapToGlobal(pos))
 
     def add_category_to_bd(self):
-        self.bd_category_win = AdderCategoryToBD(Path(self.path_to_bd).name, self.add_to_category)
+        self.bd_category_win = AdderCategoryToBD(Path(self.path_to_bd).absolute(), self.add_to_category)
 
     def add_record_to_bd(self):
         self.bd_win = AdderRecordToBD(Path(self.path_to_bd),

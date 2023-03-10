@@ -239,15 +239,31 @@ class EditorCategory(QtWidgets.QWidget):
 
         self.name_category_edit = QtWidgets.QLineEdit()
         self.name_category_edit.setPlaceholderText("Название категории:")
+        self.label_text = QtWidgets.QLabel()
         self.name_category_edit.setText(self.name_cur_cat)
-        self.add_category_btn = QtWidgets.QPushButton("Редактировать категорию")
-        self.add_category_btn.clicked.connect(self.editor_category)
+        self.add_category_btn_edit = QtWidgets.QPushButton("Редактировать категорию")
+        self.add_category_btn_edit.clicked.connect(self.editor_category)
+        self.name_category_edit.textChanged.connect(self.name_category_check)
 
         self.adder_category_vbox = QtWidgets.QVBoxLayout()
         self.adder_category_vbox.addWidget(self.name_category_edit)
-        self.adder_category_vbox.addWidget(self.add_category_btn)
+        self.adder_category_vbox.addWidget(self.label_text)
+        self.adder_category_vbox.addWidget(self.add_category_btn_edit)
         self.setLayout(self.adder_category_vbox)
         self.show()
+
+    def name_category_check(self):
+        with sqlite3.connect(self.name_cur_db) as conn:
+            cur = conn.cursor()
+            res = cur.execute("""SELECT name FROM sqlite_schema WHERE type ='table' AND name NOT LIKE 'sqlite_%';
+                                    """).fetchall()
+            res = [name[0] for name in res]
+            if self.name_category_edit.text() in res:
+                self.add_category_btn_edit.setDisabled(True)
+                self.label_text.setText("Указанная категория уже существует!")
+            else:
+                self.add_category_btn_edit.setDisabled(False)
+                self.label_text.setText("")
 
     def editor_category(self):
         with sqlite3.connect(self.name_cur_db) as conn:
@@ -258,6 +274,7 @@ class EditorCategory(QtWidgets.QWidget):
             """.format(now_name_category=self.name_cur_cat, rename_name=self.name_category_edit.text()))
             conn.commit()
             self.restart()
+            self.close()
 
 
 class AdderRecordToBD(QtWidgets.QWidget):
@@ -410,18 +427,36 @@ class AdderCategoryToBD(QtWidgets.QWidget):
         super().__init__()
         self.name_cur_db = name_cur_db
         self.restart = function_restart_combo
+        self.setFixedSize(250, 90)
 
         self.name_category = QtWidgets.QLineEdit()
         self.name_category.setPlaceholderText("Название категории:")
+        self.name_category.textChanged.connect(self.name_category_check)
+
+        self.label_text = QtWidgets.QLabel()
         self.add_category_btn = QtWidgets.QPushButton("Добавить категорию в БД")
         self.add_category_btn.clicked.connect(self.add_category_in_db)
 
         self.adder_category_vbox = QtWidgets.QVBoxLayout()
         self.adder_category_vbox.addWidget(self.name_category)
+        self.adder_category_vbox.addWidget(self.label_text)
         self.adder_category_vbox.addWidget(self.add_category_btn)
         self.setLayout(self.adder_category_vbox)
 
         self.show()
+
+    def name_category_check(self):
+        with sqlite3.connect(self.name_cur_db) as conn:
+            cur = conn.cursor()
+            res = cur.execute("""SELECT name FROM sqlite_schema WHERE type ='table' AND name NOT LIKE 'sqlite_%';
+                                    """).fetchall()
+            res = [name[0] for name in res]
+            if self.name_category.text() in res:
+                self.add_category_btn.setDisabled(True)
+                self.label_text.setText("Указанная категория уже существует!")
+            else:
+                self.add_category_btn.setDisabled(False)
+                self.label_text.setText("")
 
     def add_category_in_db(self):
         path = pathlib.Path("databases", self.name_cur_db)
@@ -437,3 +472,4 @@ class AdderCategoryToBD(QtWidgets.QWidget):
             conn.commit()
 
             self.restart()
+            self.close()
