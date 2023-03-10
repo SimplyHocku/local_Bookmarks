@@ -1,6 +1,0 @@
-QLineEdit {
-	border-radius: 25px;
-	background-color: rgba(7, 96, 93, 0.1);
-    color: white;
-    text-align: center; font-size: 23px;
-}
