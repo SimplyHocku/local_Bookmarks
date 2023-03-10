@@ -1,0 +1,4 @@
+QMenuBar {
+    background: -webkit-linear-gradient(90deg, #7ba79a,#6fa572);
+	
+}
