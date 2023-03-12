@@ -165,7 +165,7 @@ class EditRecord(QtWidgets.QWidget):
         self.setLayout(self.main_vbox)
 
         self.get_info_record_for_edit()
-
+        self.setWindowTitle("Редактирование записи")
         self.show()
 
     def select_images(self):
@@ -273,6 +273,7 @@ class EditorCategory(QtWidgets.QWidget):
         self.adder_category_vbox.addWidget(self.add_category_btn_edit)
         self.setLayout(self.adder_category_vbox)
         self.setFixedSize(300, 90)
+        self.setWindowTitle("Редактирование категории")
         self.show()
 
     def name_category_check(self):
@@ -377,7 +378,7 @@ class AdderRecordToBD(QtWidgets.QWidget):
         self.main_vbox.addWidget(self.btn_select_images)
         self.main_vbox.addWidget(self.btn_bd_insert)
         self.setLayout(self.main_vbox)
-
+        self.setWindowTitle("Добавить запись в БД")
         self.show()
 
     def select_images(self):
@@ -469,6 +470,7 @@ class AdderCategoryToBD(QtWidgets.QWidget):
         self.adder_category_vbox.addWidget(self.add_category_btn)
         self.setLayout(self.adder_category_vbox)
         self.setFixedSize(300, 90)
+        self.setWindowTitle("Добавить категория в БД")
         self.show()
 
     def name_category_check(self):
