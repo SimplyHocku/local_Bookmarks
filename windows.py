@@ -6,6 +6,22 @@ from jinja2 import *
 from other_functions import *
 
 
+class CustomWebEnginePage(QtWebEngineWidgets.QWebEnginePage):
+    """ Custom WebEnginePage to customize how we handle link navigation """
+    # Store external windows.
+    external_windows = []
+
+    def acceptNavigationRequest(self, url,  _type, isMainFrame):
+        if _type == QWebEnginePage.NavigationTypeLinkClicked:
+            w = QWebEngineView()
+            w.setUrl(url)
+            w.show()
+
+            # Keep reference to external window, so it isn't cleared up.
+            self.external_windows.append(w)
+            return False
+        return super().acceptNavigationRequest(url,  _type, isMainFrame)
+
 class WebWin(QtWebEngineWidgets.QWebEngineView):
     def __init__(self, path, category, book):
         super().__init__()
@@ -14,6 +30,9 @@ class WebWin(QtWebEngineWidgets.QWebEngineView):
         self.category = category
         self.book_catalog = book
         self.cur_render()
+
+        self.browser = QtWebEngineWidgets.QWebEngineView(parent=self)
+        self.browser.setPage(CustomWebEnginePage(self))
 
         self.showMaximized()
 
