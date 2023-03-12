@@ -1,5 +1,6 @@
 import sqlite3
 import pathlib
+import markdown
 from PyQt5 import QtWidgets, QtCore, QtWebEngineWidgets
 from jinja2 import *
 from other_functions import *
@@ -23,7 +24,7 @@ class WebWin(QtWebEngineWidgets.QWebEngineView):
         data_dict["date_create"] = data[3]
         data_dict["url_record"] = data[4]
         data_dict["status_record"] = data[5]
-        data_dict["desc_record"] = data[6]
+        data_dict["desc_record"] = markdown.markdown(data[6])
         data_dict["category"] = self.category
         data_dict["images_record"] = get_paths(data[7])
 

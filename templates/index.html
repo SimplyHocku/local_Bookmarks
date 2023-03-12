@@ -50,7 +50,7 @@
     <div class="content_images">
         {% for images in values["images_record"] %}
         <div class="content_image">
-            <img src="{{ images }}" class="image_source scale">
+            <a href=" {{ images }}" target="_parent"><img src="{{ images }}" class="image_source scale"></a>
         </div>
         {% endfor %}
     </div>
