@@ -6,6 +6,23 @@ from jinja2 import *
 from other_functions import *
 
 
+class CustomWebEnginePage(QtWebEngineWidgets.QWebEnginePage):
+    """ Custom WebEnginePage to customize how we handle link navigation """
+    external_windows = []
+
+    def acceptNavigationRequest(self, url, _type, isMainFrame):
+        if _type == QtWebEngineWidgets.QWebEnginePage.NavigationTypeLinkClicked:
+            w = QtWebEngineWidgets.QWebEngineView()
+            w.setUrl(url)
+            cur_name = url.toString()
+            w.setWindowTitle(cur_name)
+            w.show()
+
+            self.external_windows.append(w)
+            return False
+        return super().acceptNavigationRequest(url, _type, isMainFrame)
+
+
 class WebWin(QtWebEngineWidgets.QWebEngineView):
     def __init__(self, path, category, book):
         super().__init__()
@@ -13,12 +30,15 @@ class WebWin(QtWebEngineWidgets.QWebEngineView):
         self.path_to_db = path
         self.category = category
         self.book_catalog = book
+        self.setPage(CustomWebEnginePage(self))
         self.cur_render()
 
         self.showMaximized()
 
     def clear_data_for_record(self, data):
         data_dict = dict()
+        self.setWindowTitle(data[1])
+
         data_dict["record_name"] = data[1]
         data_dict["path_to_img_title"] = data[2]
         data_dict["date_create"] = data[3]
@@ -80,10 +100,8 @@ class EditRecord(QtWidgets.QWidget):
 
         self.name_record_edit.textChanged.connect(self.check_name_record)
 
-        self.label_msg = QtWidgets.QLabel("Указанное имя уже существует", parent=self)
+        self.label_msg = QtWidgets.QLabel("Указанное название уже существует\nИли название не заполнено")
         self.label_msg.setStyleSheet("color: red")
-        self.label_msg.setGeometry(QtCore.QRect(70, 70, 200, 50))
-        self.label_msg.move(60, 20)
         self.label_msg.hide()
 
         effect = QtWidgets.QGraphicsOpacityEffect(self.label_msg)
@@ -121,7 +139,6 @@ class EditRecord(QtWidgets.QWidget):
         self.description_edit.setPlaceholderText("Описание")
 
         self.main_vbox = QtWidgets.QVBoxLayout()
-        self.main_vbox.addWidget(self.name_record_edit)
 
         self.up_horizont = QtWidgets.QHBoxLayout()
         self.up_horizont.addWidget(self.wb_patch_record_edit)
@@ -135,6 +152,7 @@ class EditRecord(QtWidgets.QWidget):
         self.btn_bd_insert.clicked.connect(self.edit_record_in_db)
 
         self.main_vbox.addWidget(self.name_record_edit)
+        self.main_vbox.addWidget(self.label_msg)
         self.main_vbox.addLayout(self.up_horizont)
         self.main_vbox.addLayout(self.down_horizont)
         self.main_vbox.addWidget(self.date_widget)
@@ -164,8 +182,11 @@ class EditRecord(QtWidgets.QWidget):
             res = cur.execute("""
             SELECT name from '{category}';
             """.format(category=category)).fetchall()
-            res = [name[0] for name in res]
-            if res.count(self.name_record_edit.text()) <= 1:
+            res = [name[0].lower() for name in res]
+
+            if res.count(self.name_record_edit.text().lower()) <= 1:
+                self.btn_bd_insert.setDisabled(False)
+            if len(self.name_record_edit.text()) > 0:
                 self.btn_bd_insert.setDisabled(False)
             else:
                 self.label_msg.show()
@@ -251,6 +272,7 @@ class EditorCategory(QtWidgets.QWidget):
         self.adder_category_vbox.addWidget(self.label_text)
         self.adder_category_vbox.addWidget(self.add_category_btn_edit)
         self.setLayout(self.adder_category_vbox)
+        self.setFixedSize(300, 90)
         self.show()
 
     def name_category_check(self):
@@ -258,10 +280,12 @@ class EditorCategory(QtWidgets.QWidget):
             cur = conn.cursor()
             res = cur.execute("""SELECT name FROM sqlite_schema WHERE type ='table' AND name NOT LIKE 'sqlite_%';
                                     """).fetchall()
-            res = [name[0] for name in res]
-            if self.name_category_edit.text() in res:
+            res = [name[0].lower() for name in res]
+            if self.name_category_edit.text().lower() in res:
                 self.add_category_btn_edit.setDisabled(True)
                 self.label_text.setText("Указанная категория уже существует!")
+            elif len(self.name_category_edit.text()) < 1:
+                self.add_category_btn_edit.setDisabled(True)
             else:
                 self.add_category_btn_edit.setDisabled(False)
                 self.label_text.setText("")
@@ -290,10 +314,8 @@ class AdderRecordToBD(QtWidgets.QWidget):
         self.name.setPlaceholderText("Название")
         self.name.textChanged.connect(self.check_name_record)
 
-        self.label_msg = QtWidgets.QLabel("Указанное имя уже существует", parent=self)
+        self.label_msg = QtWidgets.QLabel("Указанное название уже существует")
         self.label_msg.setStyleSheet("color: red")
-        self.label_msg.setGeometry(QtCore.QRect(70, 70, 200, 50))
-        self.label_msg.move(60, 20)
         self.label_msg.hide()
 
         effect = QtWidgets.QGraphicsOpacityEffect(self.label_msg)
@@ -331,8 +353,6 @@ class AdderRecordToBD(QtWidgets.QWidget):
         self.description.setPlaceholderText("Описание")
 
         self.main_vbox = QtWidgets.QVBoxLayout()
-        self.main_vbox.addWidget(self.name)
-
         self.up_horizont = QtWidgets.QHBoxLayout()
         self.up_horizont.addWidget(self.wb_patch)
         self.up_horizont.addWidget(self.wb_patch_btn)
@@ -342,9 +362,11 @@ class AdderRecordToBD(QtWidgets.QWidget):
         self.down_horizont.addWidget(self.date_btn)
 
         self.btn_bd_insert = QtWidgets.QPushButton("Загрузить в БД")
+        self.btn_bd_insert.setDisabled(True)
         self.btn_bd_insert.clicked.connect(self.insert_record_in_db)
 
         self.main_vbox.addWidget(self.name)
+        self.main_vbox.addWidget(self.label_msg)
         self.main_vbox.addLayout(self.up_horizont)
         self.main_vbox.addLayout(self.down_horizont)
         self.main_vbox.addWidget(self.date_widget)
@@ -399,10 +421,12 @@ class AdderRecordToBD(QtWidgets.QWidget):
             res = cur.execute("""
             SELECT name from '{category}';
             """.format(category=category)).fetchall()
-            res = [name[0] for name in res]
-            if self.name.text() in res:
+            res = [name[0].lower() for name in res]
+            if self.name.text().lower() in res:
                 self.label_msg.show()
                 self.animation_for_msg_label.start()
+                self.btn_bd_insert.setDisabled(True)
+            elif len(self.name.text()) < 1:
                 self.btn_bd_insert.setDisabled(True)
             else:
                 self.btn_bd_insert.setDisabled(False)
@@ -436,6 +460,7 @@ class AdderCategoryToBD(QtWidgets.QWidget):
 
         self.label_text = QtWidgets.QLabel()
         self.add_category_btn = QtWidgets.QPushButton("Добавить категорию в БД")
+        self.add_category_btn.setDisabled(True)
         self.add_category_btn.clicked.connect(self.add_category_in_db)
 
         self.adder_category_vbox = QtWidgets.QVBoxLayout()
@@ -443,7 +468,7 @@ class AdderCategoryToBD(QtWidgets.QWidget):
         self.adder_category_vbox.addWidget(self.label_text)
         self.adder_category_vbox.addWidget(self.add_category_btn)
         self.setLayout(self.adder_category_vbox)
-
+        self.setFixedSize(300, 90)
         self.show()
 
     def name_category_check(self):
@@ -451,10 +476,12 @@ class AdderCategoryToBD(QtWidgets.QWidget):
             cur = conn.cursor()
             res = cur.execute("""SELECT name FROM sqlite_schema WHERE type ='table' AND name NOT LIKE 'sqlite_%';
                                     """).fetchall()
-            res = [name[0] for name in res]
-            if self.name_category.text() in res:
+            res = [name[0].lower() for name in res]
+            if self.name_category.text().lower() in res:
                 self.add_category_btn.setDisabled(True)
                 self.label_text.setText("Указанная категория уже существует!")
+            elif len(self.name_category.text()) < 1:
+                self.add_category_btn.setDisabled(True)
             else:
                 self.add_category_btn.setDisabled(False)
                 self.label_text.setText("")

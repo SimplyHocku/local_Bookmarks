@@ -3,9 +3,9 @@ import sys
 import sqlite3
 from jinja2 import *
 from pathlib import Path
-from PyQt5 import QtWidgets, QtCore, QtGui
+from PyQt5 import QtWidgets, QtCore, QtGui, QtWebEngineWidgets
 from PyQt5.QtCore import Qt
-from windows import AdderCategoryToBD, AdderRecordToBD, EditorCategory, EditRecord, WebWin
+from windows import AdderCategoryToBD, AdderRecordToBD, EditorCategory, EditRecord, WebWin, CustomWebEnginePage
 from other_functions import *
 from typing import List, Dict
 
